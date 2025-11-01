@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="de">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Landwirtschafts-App - Saatgutrechner</title>
+    <title>Landwirtschafts-App - Hauptmenü</title>
     <meta name="theme-color" content="#1c5231" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -12,16 +12,56 @@
   <body>
     <header class="app-header">
       <h1>Landwirtschafts-App</h1>
-      <p>Saatgut verwalten und Aussaatmengen offline berechnen</p>
+      <p>Saatgut im Lager verwalten und Aussaatmengen berechnen</p>
     </header>
 
-    <main class="layout">
-      <section class="panel">
-        <h2>Sortenverwaltung</h2>
+    <main class="layout" id="main-content">
+      <section id="home-view" class="panel view" aria-labelledby="home-heading">
+        <h2 id="home-heading">Hauptmenü</h2>
+        <p class="view-intro">Wähle einen Bereich, um zu starten.</p>
+        <div class="menu-grid">
+          <button type="button" class="menu-card" data-target="rechnerMenu">
+            <span class="menu-card__title">Rechner</span>
+            <span class="menu-card__subtitle">Saatgut berechnen</span>
+          </button>
+          <button type="button" class="menu-card" data-target="lagerMenu">
+            <span class="menu-card__title">Lager</span>
+            <span class="menu-card__subtitle">Bestand pflegen</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="rechner-menu-view" class="panel view hidden" aria-labelledby="rechner-menu-heading">
+        <button type="button" class="back-button" data-action="back">Zurück</button>
+        <h2 id="rechner-menu-heading">Rechner</h2>
+        <p class="view-intro">Wähle einen Rechner.</p>
+        <div class="menu-grid single">
+          <button type="button" class="menu-card" data-target="rechner">
+            <span class="menu-card__title">Saatgutrechner</span>
+            <span class="menu-card__subtitle">Aussaatmengen kalkulieren</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="lager-menu-view" class="panel view hidden" aria-labelledby="lager-menu-heading">
+        <button type="button" class="back-button" data-action="back">Zurück</button>
+        <h2 id="lager-menu-heading">Lager</h2>
+        <p class="view-intro">Wähle einen Bereich.</p>
+        <div class="menu-grid single">
+          <button type="button" class="menu-card" data-target="lager">
+            <span class="menu-card__title">Saatgutlager</span>
+            <span class="menu-card__subtitle">Sorten verwalten und dokumentieren</span>
+          </button>
+        </div>
+      </section>
+
+      <section id="lager-view" class="panel view hidden" aria-labelledby="lager-heading">
+        <button type="button" class="back-button" data-action="back">Zurück</button>
+        <h2 id="lager-heading">Saatgutlager</h2>
         <form id="seed-form" class="form-grid">
           <input type="hidden" id="seed-id" />
           <label for="seed-name">Sortenname</label>
-          <input id="seed-name" type="text" placeholder="z. B. Winterweizen XYZ" required />
+          <input id="seed-name" type="text" placeholder="z. B. Winterweizen Beispiel" required />
 
           <label for="seed-crop">Kultur</label>
           <select id="seed-crop" required>
@@ -43,14 +83,14 @@
           <input id="seed-tkg" type="number" min="0" step="0.1" required />
 
           <label for="seed-notes">Notizen (optional)</label>
-          <textarea id="seed-notes" rows="2" placeholder="z. B. Besonderheiten, Saattermin"></textarea>
+          <textarea id="seed-notes" rows="2" placeholder="z. B. Besonderheiten, Saattermin"></textarea>
 
           <button type="submit" class="primary">Speichern</button>
           <button type="button" id="cancel-edit" class="secondary">Abbrechen</button>
         </form>
 
         <div class="table-wrapper">
-          <table>
+          <table aria-live="polite">
             <thead>
               <tr>
                 <th>Sorte</th>
@@ -65,8 +105,9 @@
         </div>
       </section>
 
-      <section class="panel">
-        <h2>Saatgutrechner</h2>
+      <section id="rechner-view" class="panel view hidden" aria-labelledby="rechner-heading">
+        <button type="button" class="back-button" data-action="back">Zurück</button>
+        <h2 id="rechner-heading">Saatgutrechner</h2>
         <form id="calculator-form" class="form-grid">
           <label for="calculator-variety">Sorte</label>
           <select id="calculator-variety" required>
@@ -89,24 +130,24 @@
           <button type="submit" class="primary">Berechnen</button>
         </form>
 
-        <section id="result-section" class="result hidden">
+        <section id="result-section" class="result hidden" aria-live="polite">
           <h3>Ergebnis</h3>
           <dl>
             <div>
               <dt>Saatgutbedarf je m²</dt>
-              <dd id="result-seeds-per-m2">–</dd>
+              <dd id="result-seeds-per-m2">-</dd>
             </div>
             <div>
               <dt>Saatgutbedarf je ha</dt>
-              <dd id="result-seeds-per-ha">–</dd>
+              <dd id="result-seeds-per-ha">-</dd>
             </div>
             <div>
               <dt>kg pro ha</dt>
-              <dd id="result-kg-per-ha">–</dd>
+              <dd id="result-kg-per-ha">-</dd>
             </div>
             <div>
               <dt>Gesamtmenge für Fläche</dt>
-              <dd id="result-total-kg">–</dd>
+              <dd id="result-total-kg">-</dd>
             </div>
           </dl>
         </section>
@@ -120,4 +161,3 @@
     <script src="app.js" defer></script>
   </body>
 </html>
-

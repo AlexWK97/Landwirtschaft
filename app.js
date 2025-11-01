@@ -15,7 +15,7 @@ const defaultSeeds = [
     crop: "Wintergerste",
     germinationRate: 97,
     thousandKernelWeight: 38,
-    notes: "Fruehe Aussaat empfohlen"
+    notes: "Frühe Aussaat empfohlen"
   },
   {
     id: createId(),
@@ -23,7 +23,7 @@ const defaultSeeds = [
     crop: "Winterraps",
     germinationRate: 92,
     thousandKernelWeight: 5.2,
-    notes: "Spaetere Aussaat, gute Winterhaerte"
+    notes: "Spätere Aussaat, gute Winterhärte"
   }
 ];
 
@@ -47,6 +47,11 @@ let resultSeedsPerM2;
 let resultSeedsPerHa;
 let resultKgPerHa;
 let resultTotalKg;
+let navigationTargets = [];
+let backButtons = [];
+let viewSections = {};
+let viewHistory = [];
+let currentView = null;
 
 document.addEventListener("DOMContentLoaded", initializeApp);
 
@@ -70,6 +75,15 @@ function initializeApp() {
   resultSeedsPerHa = document.querySelector("#result-seeds-per-ha");
   resultKgPerHa = document.querySelector("#result-kg-per-ha");
   resultTotalKg = document.querySelector("#result-total-kg");
+  navigationTargets = Array.from(document.querySelectorAll("[data-target]"));
+  backButtons = Array.from(document.querySelectorAll("[data-action='back']"));
+  viewSections = {
+    home: document.querySelector("#home-view"),
+    lagerMenu: document.querySelector("#lager-menu-view"),
+    lager: document.querySelector("#lager-view"),
+    rechnerMenu: document.querySelector("#rechner-menu-view"),
+    rechner: document.querySelector("#rechner-view")
+  };
 
   seeds = loadSeeds();
   renderSeedTable();
@@ -85,6 +99,15 @@ function initializeApp() {
   if (calculatorForm) {
     calculatorForm.addEventListener("submit", handleCalculation);
   }
+
+  navigationTargets.forEach((button) =>
+    button.addEventListener("click", handleNavigationTarget)
+  );
+  backButtons.forEach((button) =>
+    button.addEventListener("click", handleBackNavigation)
+  );
+
+  navigateTo("home", false);
 
   resetSeedForm();
 }
@@ -199,7 +222,7 @@ function renderSeedTable() {
       <td>
         <div class="table-actions">
           <button type="button" data-action="edit" data-id="${seed.id}">Bearbeiten</button>
-          <button type="button" data-action="delete" data-id="${seed.id}">Löschen</button>
+      <button type="button" data-action="delete" data-id="${seed.id}">Löschen</button>
         </div>
       </td>`;
     seedTableBody.appendChild(row);
@@ -393,6 +416,57 @@ function cloneSeeds(list) {
   return JSON.parse(JSON.stringify(list));
 }
 
+function handleNavigationTarget(event) {
+  const targetView = event.currentTarget?.dataset?.target;
+  if (!targetView) {
+    return;
+  }
+
+  navigateTo(targetView);
+}
+
+function handleBackNavigation() {
+  if (viewHistory.length === 0) {
+    navigateTo("home", false);
+    return;
+  }
+
+  const previousView = viewHistory.pop();
+  navigateTo(previousView, false);
+}
+
+function navigateTo(view, shouldPushHistory = true) {
+  if (!viewSections?.[view]) {
+    console.warn(`Unbekannte Ansicht: ${view}`);
+    return;
+  }
+
+  if (currentView === view) {
+    return;
+  }
+
+  if (shouldPushHistory && currentView) {
+    viewHistory.push(currentView);
+  } else if (!shouldPushHistory && view === "home") {
+    viewHistory = [];
+  }
+
+  Object.entries(viewSections).forEach(([key, section]) => {
+    if (!section) {
+      return;
+    }
+
+    const isActive = key === view;
+    section.classList.toggle("hidden", !isActive);
+    section.setAttribute("aria-hidden", (!isActive).toString());
+  });
+
+  currentView = view;
+
+  if (view === "home") {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+}
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
