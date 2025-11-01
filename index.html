@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Landwirtschafts-App - Saatgutrechner</title>
+    <meta name="theme-color" content="#1c5231" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>Landwirtschafts-App</h1>
+      <p>Saatgut verwalten und Aussaatmengen offline berechnen</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <h2>Sortenverwaltung</h2>
+        <form id="seed-form" class="form-grid">
+          <input type="hidden" id="seed-id" />
+          <label for="seed-name">Sortenname</label>
+          <input id="seed-name" type="text" placeholder="z. B. Winterweizen XYZ" required />
+
+          <label for="seed-crop">Kultur</label>
+          <select id="seed-crop" required>
+            <option value="">Bitte Kultur wählen</option>
+            <option value="Winterweizen">Winterweizen</option>
+            <option value="Sommerdurum">Sommerdurum</option>
+            <option value="Winterraps">Winterraps</option>
+            <option value="Wintergerste">Wintergerste</option>
+            <option value="Mais">Mais</option>
+            <option value="Zuckerrüben">Zuckerrüben</option>
+            <option value="Erbsen">Erbsen</option>
+            <option value="Sojabohnen">Sojabohnen</option>
+          </select>
+
+          <label for="seed-germination">Keimfähigkeit (%)</label>
+          <input id="seed-germination" type="number" min="0" max="100" step="0.1" required />
+
+          <label for="seed-tkg">TKG (g)</label>
+          <input id="seed-tkg" type="number" min="0" step="0.1" required />
+
+          <label for="seed-notes">Notizen (optional)</label>
+          <textarea id="seed-notes" rows="2" placeholder="z. B. Besonderheiten, Saattermin"></textarea>
+
+          <button type="submit" class="primary">Speichern</button>
+          <button type="button" id="cancel-edit" class="secondary">Abbrechen</button>
+        </form>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Sorte</th>
+                <th>Kultur</th>
+                <th>Keimfähigkeit (%)</th>
+                <th>TKG (g)</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="seed-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Saatgutrechner</h2>
+        <form id="calculator-form" class="form-grid">
+          <label for="calculator-variety">Sorte</label>
+          <select id="calculator-variety" required>
+            <option value="">Bitte Sorte wählen</option>
+          </select>
+
+          <label for="target-density">Ziel-Bestandesdichte (Pflanzen/m²)</label>
+          <input id="target-density" type="number" min="0" step="1" required />
+
+          <label for="calculator-area">Fläche</label>
+          <input id="calculator-area" type="number" min="0" step="0.01" value="1" required />
+
+          <label for="area-unit">Flächeneinheit</label>
+          <select id="area-unit">
+            <option value="hectare">Hektar</option>
+            <option value="acre">Acre</option>
+            <option value="squareMeter">Quadratmeter</option>
+          </select>
+
+          <button type="submit" class="primary">Berechnen</button>
+        </form>
+
+        <section id="result-section" class="result hidden">
+          <h3>Ergebnis</h3>
+          <dl>
+            <div>
+              <dt>Saatgutbedarf je m²</dt>
+              <dd id="result-seeds-per-m2">–</dd>
+            </div>
+            <div>
+              <dt>Saatgutbedarf je ha</dt>
+              <dd id="result-seeds-per-ha">–</dd>
+            </div>
+            <div>
+              <dt>kg pro ha</dt>
+              <dd id="result-kg-per-ha">–</dd>
+            </div>
+            <div>
+              <dt>Gesamtmenge für Fläche</dt>
+              <dd id="result-total-kg">–</dd>
+            </div>
+          </dl>
+        </section>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <small>Alle Daten werden lokal gespeichert.</small>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
+
