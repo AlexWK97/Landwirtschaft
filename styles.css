@@ -171,3 +171,32 @@ dd {
 .hidden {
   display: none !important;
 }
+
+@media (max-width: 640px) {
+  .layout {
+    padding: 1rem;
+  }
+
+  .panel {
+    padding: 1rem;
+  }
+
+  table {
+    min-width: 100%;
+    font-size: 0.95rem;
+  }
+
+  th,
+  td {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .table-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-actions button {
+    width: 100%;
+  }
+}
