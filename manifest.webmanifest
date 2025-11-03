@@ -1,7 +1,7 @@
 {
   "name": "LandwirtschaftsApp",
   "short_name": "LW-App",
-  "description": "Offline Saatgutrechner für Landwirtschaftsbetriebe.",
+  "description": "Offline Saatgutrechner fuer Landwirtschaftsbetriebe.",
   "lang": "de-DE",
   "start_url": "./index.html",
   "scope": "./",

@@ -132,6 +132,51 @@ h2 {
   gap: 0.75rem;
 }
 
+.seed-density-fieldset {
+  border: 1px solid #c7d3e1;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0;
+}
+
+.seed-density-fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.seed-density-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  margin-top: 0.5rem;
+}
+
+.seed-density-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sowing-time-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.seed-target-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.seed-target-summary span {
+  font-size: 0.95rem;
+}
+
+.seed-target-cell {
+  vertical-align: top;
+}
+
 label {
   font-weight: 600;
 }
@@ -175,6 +220,155 @@ button {
 
 .secondary:hover {
   background-color: #cbd7e2;
+}
+
+.psm-amount-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.psm-amount-input select {
+  min-width: 80px;
+}
+
+.psm-application-fieldset {
+  border: 1px solid #c7d3e1;
+  border-radius: 12px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.psm-application-fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.psm-application-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.psm-application-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.psm-application-row select,
+.psm-application-row input {
+  width: 100%;
+}
+
+.psm-application-entry {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #1b2430;
+}
+
+.psm-application-entry:last-child {
+  margin-bottom: 0;
+}
+
+.psm-application-entry__crop {
+  font-weight: 600;
+}
+
+.icon-button {
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.2rem;
+  color: #6c7684;
+  cursor: pointer;
+}
+
+.icon-button:hover,
+.icon-button:focus-visible {
+  background-color: #f2f6fb;
+  color: #1b2430;
+}
+
+.add-application-button {
+  justify-self: flex-start;
+}
+
+.form-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: rgba(27, 36, 48, 0.68);
+}
+
+.psm-calculator-rows {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.psm-calculator-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(200px, 1fr) minmax(200px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.psm-calculator-row select,
+.psm-calculator-row input {
+  width: 100%;
+}
+
+.psm-calculator-rate-group {
+  align-items: stretch;
+}
+
+.psm-calculator-rate-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.link-button {
+  border: none;
+  background: none;
+  color: #2d6a4f;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0;
+  cursor: pointer;
+}
+
+.link-button:hover,
+.link-button:focus-visible {
+  text-decoration: underline;
+  color: #245741;
+}
+
+.link-button:disabled {
+  color: rgba(27, 36, 48, 0.4);
+  cursor: default;
+  text-decoration: none;
+}
+
+.psm-calculator-result-table th,
+.psm-calculator-result-table td {
+  white-space: nowrap;
+}
+
+.psm-calculator-result-table td:nth-child(1),
+.psm-calculator-result-table td:nth-child(2) {
+  white-space: normal;
+}
+
+.psm-calculator-water {
+  margin: 1rem 0 0;
+  font-weight: 600;
 }
 
 .table-wrapper {
@@ -251,6 +445,27 @@ dd {
     grid-template-columns: 1fr;
   }
 
+  .psm-application-row {
+    grid-template-columns: 1fr;
+  }
+
+  .psm-application-row .icon-button {
+    justify-self: flex-start;
+  }
+
+  .psm-calculator-row {
+    grid-template-columns: 1fr;
+  }
+
+  .psm-calculator-row .icon-button {
+    justify-self: flex-start;
+  }
+
+  .psm-calculator-rate-actions {
+    justify-content: flex-start;
+    margin-top: 0.25rem;
+  }
+
   table {
     min-width: 100%;
     font-size: 0.95rem;
@@ -269,4 +484,9 @@ dd {
   .table-actions button {
     width: 100%;
   }
+
+  .psm-amount-input {
+    grid-template-columns: 1fr;
+  }
+
 }

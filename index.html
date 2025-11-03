@@ -26,7 +26,7 @@
           </button>
           <button type="button" class="menu-card" data-target="lagerMenu">
             <span class="menu-card__title">Lager</span>
-            <span class="menu-card__subtitle">Bestand pflegen</span>
+            <span class="menu-card__subtitle">Bestände pflegen</span>
           </button>
         </div>
       </section>
@@ -35,10 +35,14 @@
         <button type="button" class="back-button" data-action="back">Zurück</button>
         <h2 id="rechner-menu-heading">Rechner</h2>
         <p class="view-intro">Wähle einen Rechner.</p>
-        <div class="menu-grid single">
+        <div class="menu-grid">
           <button type="button" class="menu-card" data-target="rechner">
             <span class="menu-card__title">Saatgutrechner</span>
             <span class="menu-card__subtitle">Aussaatmengen kalkulieren</span>
+          </button>
+          <button type="button" class="menu-card" data-target="psmRechner">
+            <span class="menu-card__title">PSM-Rechner</span>
+            <span class="menu-card__subtitle">Mittel für einen Tank berechnen</span>
           </button>
         </div>
       </section>
@@ -47,10 +51,14 @@
         <button type="button" class="back-button" data-action="back">Zurück</button>
         <h2 id="lager-menu-heading">Lager</h2>
         <p class="view-intro">Wähle einen Bereich.</p>
-        <div class="menu-grid single">
+        <div class="menu-grid">
           <button type="button" class="menu-card" data-target="lager">
             <span class="menu-card__title">Saatgutlager</span>
             <span class="menu-card__subtitle">Sorten verwalten und dokumentieren</span>
+          </button>
+          <button type="button" class="menu-card" data-target="psmLager">
+            <span class="menu-card__title">Pflanzenschutzlager</span>
+            <span class="menu-card__subtitle">Mittel und Aufwandmengen pflegen</span>
           </button>
         </div>
       </section>
@@ -60,6 +68,7 @@
         <h2 id="lager-heading">Saatgutlager</h2>
         <form id="seed-form" class="form-grid">
           <input type="hidden" id="seed-id" />
+
           <label for="seed-name">Sortenname</label>
           <input id="seed-name" type="text" placeholder="z. B. Winterweizen Beispiel" required />
 
@@ -82,11 +91,29 @@
           <label for="seed-tkg">TKG (g)</label>
           <input id="seed-tkg" type="number" min="0" step="0.1" required />
 
+          <fieldset class="seed-density-fieldset">
+            <legend>Empfohlener Zielbestand (Pflanzen/m²)</legend>
+            <div class="seed-density-grid">
+              <div class="seed-density-item">
+                <label for="seed-target-early">Früh</label>
+                <input id="seed-target-early" type="number" min="0" step="1" placeholder="z. B. 320" />
+              </div>
+              <div class="seed-density-item">
+                <label for="seed-target-mid">Mittel</label>
+                <input id="seed-target-mid" type="number" min="0" step="1" placeholder="z. B. 300" />
+              </div>
+              <div class="seed-density-item">
+                <label for="seed-target-late">Spät</label>
+                <input id="seed-target-late" type="number" min="0" step="1" placeholder="z. B. 280" />
+              </div>
+            </div>
+          </fieldset>
+
           <label for="seed-notes">Notizen (optional)</label>
           <textarea id="seed-notes" rows="2" placeholder="z. B. Besonderheiten, Saattermin"></textarea>
 
           <button type="submit" class="primary">Speichern</button>
-          <button type="button" id="cancel-edit" class="secondary">Abbrechen</button>
+          <button type="button" id="cancel-edit" class="secondary hidden">Abbrechen</button>
         </form>
 
         <div class="table-wrapper">
@@ -97,10 +124,84 @@
                 <th>Kultur</th>
                 <th>Keimfähigkeit (%)</th>
                 <th>TKG (g)</th>
+                <th>Zielbestand (Früh/Mittel/Spät)</th>
                 <th></th>
               </tr>
             </thead>
             <tbody id="seed-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="psm-lager-view" class="panel view hidden" aria-labelledby="psm-lager-heading">
+        <button type="button" class="back-button" data-action="back">Zurück</button>
+        <h2 id="psm-lager-heading">Pflanzenschutzmittellager</h2>
+        <form id="psm-form" class="form-grid">
+          <input type="hidden" id="psm-id" />
+
+          <label for="psm-name">Mittelname</label>
+          <input id="psm-name" type="text" placeholder="z. B. Carax" required />
+
+          <fieldset class="psm-application-fieldset">
+            <legend>Verwendungen</legend>
+            <div id="psm-application-list" class="psm-application-list" aria-live="polite"></div>
+            <button type="button" id="add-psm-application" class="secondary add-application-button">
+              Verwendung hinzufügen
+            </button>
+          </fieldset>
+
+          <button type="submit" class="primary">Speichern</button>
+          <button type="button" id="psm-cancel-edit" class="secondary hidden">Abbrechen</button>
+        </form>
+
+        <template id="psm-application-template">
+          <div class="psm-application-row">
+            <select class="psm-application-crop" required>
+              <option value="">Bitte Kultur wählen</option>
+              <option value="Winterweizen">Winterweizen</option>
+              <option value="Sommerdurum">Sommerdurum</option>
+              <option value="Winterraps">Winterraps</option>
+              <option value="Wintergerste">Wintergerste</option>
+              <option value="Mais">Mais</option>
+              <option value="Zuckerrüben">Zuckerrüben</option>
+              <option value="Erbsen">Erbsen</option>
+              <option value="Sojabohnen">Sojabohnen</option>
+            </select>
+            <div class="psm-amount-input">
+              <input
+                type="number"
+                class="psm-application-amount"
+                min="0"
+                step="0.01"
+                placeholder="z. B. 0,7"
+                required
+              />
+              <select class="psm-application-unit">
+                <option value="l">l</option>
+                <option value="g">g</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              class="icon-button"
+              data-action="remove-psm-application"
+              aria-label="Verwendung entfernen"
+            >
+              ×
+            </button>
+          </div>
+        </template>
+
+        <div class="table-wrapper">
+          <table aria-live="polite">
+            <thead>
+              <tr>
+                <th>Mittel</th>
+                <th>Kulturen &amp; Aufwandmengen</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="psm-table-body"></tbody>
           </table>
         </div>
       </section>
@@ -114,18 +215,32 @@
             <option value="">Bitte Sorte wählen</option>
           </select>
 
+          <label for="sowing-time">Saattermin</label>
+          <div class="sowing-time-select">
+            <select id="sowing-time">
+              <option value="early">früh</option>
+              <option value="mid" selected>mittel</option>
+              <option value="late">spät</option>
+            </select>
+            <p id="recommended-density" class="form-hint">Empfohlener Zielbestand: –</p>
+          </div>
+
           <label for="target-density">Ziel-Bestandesdichte (Pflanzen/m²)</label>
           <input id="target-density" type="number" min="0" step="1" required />
 
-          <label for="calculator-area">Fläche</label>
-          <input id="calculator-area" type="number" min="0" step="0.01" value="1" required />
-
-          <label for="area-unit">Flächeneinheit</label>
-          <select id="area-unit">
-            <option value="hectare">Hektar</option>
-            <option value="acre">Acre</option>
-            <option value="squareMeter">Quadratmeter</option>
+          <label for="field-emergence">Feldaufgang</label>
+          <select id="field-emergence">
+            <option value="0.9">gut (90 %)</option>
+            <option value="0.8">mittel (80 %)</option>
+            <option value="0.7">schlecht (70 %)</option>
           </select>
+
+          <label for="filled-amount">Eingefüllte Menge (kg)</label>
+          <input id="filled-amount" type="number" min="0" step="0.01" required />
+
+          <label for="current-area">Aktuelle Fläche (ha)</label>
+          <input id="current-area" type="number" min="0" step="0.01" value="0" />
+          <p class="form-hint">Wird nach jeder Berechnung automatisch aktualisiert.</p>
 
           <button type="submit" class="primary">Berechnen</button>
         </form>
@@ -146,10 +261,98 @@
               <dd id="result-kg-per-ha">-</dd>
             </div>
             <div>
-              <dt>Gesamtmenge für Fläche</dt>
-              <dd id="result-total-kg">-</dd>
+              <dt>Theoretische Fläche aus Menge</dt>
+              <dd id="result-theoretical-area">-</dd>
+            </div>
+            <div>
+              <dt>Aktualisierte Gesamtfläche</dt>
+              <dd id="result-updated-area">-</dd>
             </div>
           </dl>
+        </section>
+      </section>
+      <section id="psm-rechner-view" class="panel view hidden" aria-labelledby="psm-rechner-heading">
+        <button type="button" class="back-button" data-action="back">Zurück</button>
+        <h2 id="psm-rechner-heading">PSM-Rechner</h2>
+        <form id="psm-calculator-form" class="form-grid">
+          <div>
+            <label for="psm-coverage-area">Fläche je Tankfüllung (ha)</label>
+            <input
+              id="psm-coverage-area"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="z. B. 20"
+              required
+            />
+            <p class="form-hint">Tankvolumen der Spritze: 4.700&nbsp;l</p>
+          </div>
+
+          <fieldset class="psm-application-fieldset">
+            <legend>Pflanzenschutzmittel pro Tank</legend>
+            <p id="psm-calculator-empty-hint" class="form-hint hidden">
+              Noch keine Pflanzenschutzmittel angelegt. Bitte vor der Berechnung Mittel im Lager hinterlegen.
+            </p>
+            <div id="psm-calculator-rows" class="psm-calculator-rows" aria-live="polite"></div>
+            <button type="button" id="psm-calculator-add-row" class="secondary add-application-button">
+              Mittel hinzufügen
+            </button>
+          </fieldset>
+
+          <button type="submit" class="primary">Berechnen</button>
+        </form>
+
+        <template id="psm-calculator-row-template">
+          <div class="psm-calculator-row">
+            <select class="psm-calculator-product" required aria-label="Pflanzenschutzmittel auswählen"></select>
+            <select
+              class="psm-calculator-application"
+              required
+              aria-label="Anwendungsvariante"
+              disabled
+            ></select>
+            <div class="psm-amount-input psm-calculator-rate-group">
+              <input
+                type="number"
+                class="psm-calculator-rate"
+                min="0"
+                step="0.01"
+                placeholder="Aufwandmenge je ha"
+                required
+                aria-label="Aufwandmenge je ha"
+                disabled
+              />
+              <div class="psm-calculator-rate-actions">
+                <button type="button" class="link-button" data-action="use-max-rate">Max übernehmen</button>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="icon-button"
+              data-action="remove-psm-calculator-row"
+              aria-label="Zeile entfernen"
+            >
+              &times;
+            </button>
+          </div>
+        </template>
+
+        <section id="psm-calculator-result" class="result hidden" aria-live="polite">
+          <h3>Ergebnis</h3>
+          <div class="table-wrapper">
+            <table class="psm-calculator-result-table">
+              <thead>
+                <tr>
+                  <th>Mittel</th>
+                  <th>Kultur / Anwendung</th>
+                  <th>Aufwandmenge je ha</th>
+                  <th>Gesamtmenge je Tank</th>
+                </tr>
+              </thead>
+              <tbody id="psm-calculator-result-body"></tbody>
+            </table>
+          </div>
+          <p id="psm-calculator-water" class="psm-calculator-water"></p>
         </section>
       </section>
     </main>
@@ -161,3 +364,4 @@
     <script src="app.js" defer></script>
   </body>
 </html>
+
