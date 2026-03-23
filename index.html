@@ -1,367 +1,2144 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Landwirtschafts-App - Hauptmenü</title>
-    <meta name="theme-color" content="#1c5231" />
-    <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="app-header">
-      <h1>Landwirtschafts-App</h1>
-      <p>Saatgut im Lager verwalten und Aussaatmengen berechnen</p>
-    </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>AgroApp – Bonitur</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="psm_data.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    <main class="layout" id="main-content">
-      <section id="home-view" class="panel view" aria-labelledby="home-heading">
-        <h2 id="home-heading">Hauptmenü</h2>
-        <p class="view-intro">Wähle einen Bereich, um zu starten.</p>
-        <div class="menu-grid">
-          <button type="button" class="menu-card" data-target="rechnerMenu">
-            <span class="menu-card__title">Rechner</span>
-            <span class="menu-card__subtitle">Saatgut berechnen</span>
-          </button>
-          <button type="button" class="menu-card" data-target="lagerMenu">
-            <span class="menu-card__title">Lager</span>
-            <span class="menu-card__subtitle">Bestände pflegen</span>
-          </button>
+    :root {
+      --green:      #2e7d32;
+      --green-mid:  #43a047;
+      --green-lite: #e8f5e9;
+      --amber:      #e65100;
+      --bg:         #f1f4f0;
+      --surface:    #ffffff;
+      --text:       #1b2116;
+      --muted:      #6b7a64;
+      --border:     #d5dbd1;
+      --danger:     #c62828;
+      --radius:     14px;
+      --shadow:     0 2px 8px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      padding-bottom: 76px;
+    }
+
+    /* ── HEADER ─────────────────────────────────── */
+    .app-header {
+      background: var(--green);
+      color: #fff;
+      padding: 14px 18px 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    }
+    .app-header h1 { font-size: 19px; font-weight: 700; letter-spacing: .3px; }
+    .app-header p  { font-size: 12px; opacity: .75; margin-top: 1px; }
+
+    /* ── BOTTOM NAV ──────────────────────────────── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 100%; max-width: 480px;
+      background: #fff;
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 50;
+      box-shadow: 0 -2px 10px rgba(0,0,0,.10);
+    }
+    .nav-btn {
+      flex: 1;
+      padding: 10px 4px 8px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 500;
+      transition: color .2s;
+    }
+    .nav-btn svg { width: 22px; height: 22px; }
+    .nav-btn.active { color: var(--green); }
+
+    /* ── PAGES ───────────────────────────────────── */
+    .page { display: none; padding: 14px; }
+    .page.active { display: block; }
+
+    /* ── CARD ────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      margin-bottom: 10px;
+    }
+
+    /* ── DATE BAR ────────────────────────────────── */
+    .date-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-lite);
+      border-radius: 10px;
+      padding: 11px 14px;
+      margin-bottom: 12px;
+    }
+    .date-bar svg { width: 18px; height: 18px; color: var(--green); flex-shrink: 0; }
+    .date-bar span { font-size: 14px; font-weight: 600; color: var(--green); }
+
+    /* ── CHIPS ───────────────────────────────────── */
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      padding: 8px 15px;
+      border-radius: 20px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+      color: var(--text);
+    }
+    .chip.selected {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    /* ── NEW FELD INPUT ──────────────────────────── */
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .add-row input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+      color: var(--text);
+    }
+    .add-row input:focus { outline: none; border-color: var(--green-mid); }
+    .add-row button {
+      padding: 10px 16px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ── COUNTER ─────────────────────────────────── */
+    .counter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .counter-row:last-child { border-bottom: none; }
+    .counter-name { font-size: 14px; font-weight: 500; flex: 1; padding-right: 8px; line-height: 1.3; }
+    .counter-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .ctr-btn {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      border: 2px solid var(--green-mid);
+      background: #fff;
+      color: var(--green);
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: background .15s;
+    }
+    .ctr-btn:active { background: var(--green-lite); }
+    .gelbschale-header {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--green);
+      padding: 12px 0 8px 0;
+      margin-top: 8px;
+      border-bottom: 2px solid var(--green-lite);
+    }
+    .ctr-val {
+      font-size: 24px;
+      font-weight: 800;
+      min-width: 36px;
+      text-align: center;
+      color: var(--green);
+    }
+
+    /* ── SAVE BUTTON ─────────────────────────────── */
+    .btn-save {
+      width: 100%;
+      padding: 15px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: background .2s;
+    }
+    .btn-save:active { background: #1b5e20; }
+    .btn-save:disabled { opacity: .45; cursor: default; }
+
+    /* ── NOTIZ INPUT ─────────────────────────────── */
+    .notiz-input {
+      width: 100%;
+      padding: 11px 13px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+      color: var(--text);
+    }
+    .notiz-input:focus { outline: none; border-color: var(--green-mid); }
+
+    /* ── HISTORY ─────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+    .f-chip {
+      white-space: nowrap;
+      padding: 6px 14px;
+      border-radius: 16px;
+      border: 2px solid var(--border);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: all .18s;
+    }
+    .f-chip.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .entry-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 13px 15px;
+      margin-bottom: 9px;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+    .entry-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 7px;
+    }
+    .entry-feld { font-size: 15px; font-weight: 700; }
+    .entry-date { font-size: 12px; color: var(--muted); }
+    .entry-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 7px; }
+    .tag {
+      font-size: 12px;
+      padding: 2px 9px;
+      border-radius: 9px;
+      background: var(--green-lite);
+      color: #1b5e20;
+      font-weight: 600;
+    }
+    .entry-counts { font-size: 13px; color: var(--text); line-height: 1.6; }
+    .entry-counts span { font-weight: 700; color: var(--green); }
+    .entry-notiz { margin-top: 5px; font-size: 12px; color: var(--muted); font-style: italic; }
+    .del-btn {
+      position: absolute;
+      top: 10px; right: 10px;
+      width: 26px; height: 26px;
+      border: none; background: none;
+      color: #bbb; font-size: 20px;
+      cursor: pointer;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .del-btn:active { background: #ffebee; color: var(--danger); }
+
+    /* ── CHARTS PAGE ─────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .stat-box {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 14px 12px;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .stat-num { font-size: 30px; font-weight: 800; color: var(--green); }
+    .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .chart-wrap { position: relative; height: 220px; }
+
+    select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+      color: var(--text);
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    select:focus { outline: none; border-color: var(--green-mid); }
+    .form-group { margin-bottom: 10px; }
+    .form-group:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; color: var(--muted); }
+
+    /* ── SUB-TABS (Monitor) ──────────────────────── */
+    .sub-tabs {
+      background: #fff;
+      border-bottom: 2px solid var(--border);
+      display: none;
+      position: sticky;
+      top: 49px;
+      z-index: 40;
+    }
+    .sub-tabs.visible { display: flex; }
+    .sub-tab {
+      flex: 1;
+      padding: 11px 4px;
+      border: none;
+      background: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all .18s;
+    }
+    .sub-tab.active {
+      color: var(--green);
+      border-bottom-color: var(--green);
+    }
+
+    /* ── SAATGUT PLACEHOLDER ─────────────────────── */
+    .placeholder-page {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+    }
+    .placeholder-page .big-icon { font-size: 64px; margin-bottom: 16px; }
+    .placeholder-page h2 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .placeholder-page p { font-size: 15px; line-height: 1.6; }
+
+    /* ── PSM SEARCH ──────────────────────────────── */
+    .psm-search-wrap { position: relative; margin-bottom: 10px; }
+    .psm-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 16px;
+      background: #fff;
+      color: var(--text);
+    }
+    .psm-input:focus { outline: none; border-color: var(--green-mid); }
+    .autocomplete-list {
+      position: absolute;
+      top: 100%; left: 0; right: 0;
+      background: #fff;
+      border: 2px solid var(--green-mid);
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 30;
+      box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+    .ac-item {
+      padding: 11px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:active, .ac-item.focused { background: var(--green-lite); }
+    .ac-match { font-weight: 700; color: var(--green); }
+
+    .psm-result-card {
+      background: #fff;
+      border-radius: var(--radius);
+      margin-bottom: 9px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .psm-card-header {
+      background: var(--green);
+      color: #fff;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .psm-name { font-size: 15px; font-weight: 700; }
+    .psm-wirkstoff-badge {
+      font-size: 11px;
+      opacity: .85;
+      background: rgba(255,255,255,.2);
+      padding: 2px 8px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .psm-body { padding: 11px 14px; }
+    .psm-row {
+      display: flex;
+      gap: 6px;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .psm-row:last-child { border-bottom: none; }
+    .psm-lbl { color: var(--muted); font-weight: 600; min-width: 95px; flex-shrink: 0; }
+    .psm-val { color: var(--text); }
+    .psm-val.warn { color: var(--danger); font-weight: 600; }
+
+    .psm-count-bar {
+      text-align: center;
+      padding: 8px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .psm-count-bar strong { color: var(--green); }
+
+    /* ── STAMMDATEN ──────────────────────────────── */
+    .sd-wrap {
+      background: #fff;
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .sd-item {
+      padding: 13px 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sd-item-info { flex: 1; min-width: 0; }
+    .sd-item-name { font-size: 15px; font-weight: 700; }
+    .sd-item-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .sd-actions {
+      border-top: 1px solid var(--bg);
+      display: flex;
+    }
+    .sd-action-btn {
+      flex: 1;
+      padding: 9px 4px;
+      border: none;
+      background: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--muted);
+      border-right: 1px solid var(--bg);
+      transition: background .15s;
+    }
+    .sd-action-btn:last-child { border-right: none; }
+    .sd-action-btn:active { background: var(--green-lite); color: var(--green); }
+    .sd-action-btn.danger:active { background: #ffebee; color: var(--danger); }
+    .sd-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 8px;
+      background: var(--green-lite);
+      color: var(--green);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .sd-badge.builtin { background: #e3f2fd; color: #1565c0; }
+
+    /* Merge mode */
+    .sd-check { width: 20px; height: 20px; cursor: pointer; accent-color: var(--green); flex-shrink: 0; }
+    .merge-bar {
+      background: var(--green);
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .merge-bar.visible { display: flex; }
+    .merge-bar span { flex: 1; font-size: 14px; font-weight: 600; }
+    .merge-bar button {
+      padding: 7px 12px;
+      border: 2px solid rgba(255,255,255,.5);
+      background: none;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .merge-bar .btn-confirm { background: #fff; color: var(--green); border-color: #fff; }
+
+    /* Top row */
+    .sd-top-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .btn-add-main {
+      flex: 2;
+      padding: 13px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-add-main:active { background: #1b5e20; }
+    .btn-sec {
+      flex: 1;
+      padding: 13px 8px;
+      background: var(--green-lite);
+      color: var(--green);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Forms */
+    .sd-form-card {
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+      border: 2px solid var(--green-mid);
+    }
+    .sd-form-card .card-title { margin-bottom: 12px; }
+    .sd-input {
+      width: 100%;
+      padding: 11px 13px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .sd-input:focus { outline: none; border-color: var(--green-mid); }
+    .sd-btn-row { display: flex; gap: 8px; }
+    .btn-ok {
+      flex: 1; padding: 11px;
+      background: var(--green); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .btn-cancel {
+      flex: 1; padding: 11px;
+      background: #eee; color: var(--muted);
+      border: none; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .split-divider { border: none; border-top: 2px dashed var(--border); margin: 10px 0 14px; }
+    .split-sub-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+
+    /* Sorten */
+    .expand-btn {
+      background: none; border: none;
+      font-size: 16px; cursor: pointer;
+      color: var(--muted); padding: 4px 6px;
+      transition: transform .2s;
+      flex-shrink: 0;
+    }
+    .expand-btn.open { transform: rotate(90deg); color: var(--green); }
+    .sorten-section {
+      border-top: 1px solid var(--bg);
+      padding: 10px 15px 13px;
+      background: #fafafa;
+    }
+    .sorte-row {
+      display: flex; align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .sorte-row:last-of-type { border-bottom: none; }
+    .sorte-name { flex: 1; }
+    .sorte-del {
+      width: 24px; height: 24px;
+      border: none; background: none;
+      color: #ccc; font-size: 17px; cursor: pointer;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sorte-del:active { background: #ffebee; color: var(--danger); }
+    .sorte-add-row { display: flex; gap: 6px; margin-top: 10px; }
+    .sorte-add-row input {
+      flex: 1; padding: 8px 10px;
+      border: 2px solid var(--border); border-radius: 8px;
+      font-size: 14px; background: #fff;
+    }
+    .sorte-add-row input:focus { outline: none; border-color: var(--green-mid); }
+    .sorte-add-row button {
+      padding: 8px 14px;
+      background: var(--green); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+
+    /* ── EMPTY STATE ─────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 44px 20px;
+      color: var(--muted);
+    }
+    .empty svg { width: 56px; height: 56px; margin-bottom: 12px; opacity: .25; }
+    .empty p { font-size: 15px; }
+
+    /* ── TOAST ───────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 86px;
+      left: 50%;
+      transform: translateX(-50%) translateY(0);
+      background: var(--green);
+      color: #fff;
+      padding: 11px 22px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 200;
+      white-space: nowrap;
+      max-width: 90vw;
+      animation: toastIn .25s ease, toastOut .3s ease 2.2s forwards;
+    }
+    @keyframes toastIn  { from { opacity:0; transform: translateX(-50%) translateY(12px); } }
+    @keyframes toastOut { to   { opacity:0; transform: translateX(-50%) translateY(-8px); } }
+  </style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>🌱 AgroApp</h1>
+  <p id="header-sub">Pflanzenschutz &amp; Bonitur</p>
+</header>
+
+<!-- ══════════ STAMMDATEN SUB-TABS ══════════ -->
+<div class="sub-tabs" id="stamm-tabs">
+  <button class="sub-tab active" id="subtab-felder"   onclick="goStamm('felder')">Felder</button>
+  <button class="sub-tab"        id="subtab-kulturen" onclick="goStamm('kulturen')">Kulturen</button>
+</div>
+
+<!-- ══════════ MONITOR SUB-TABS ══════════ -->
+<div class="sub-tabs" id="monitor-tabs">
+  <button class="sub-tab active" id="subtab-bonitur" onclick="goMonitor('bonitur')">Erfassen</button>
+  <button class="sub-tab" id="subtab-historie" onclick="goMonitor('historie')">Historie</button>
+  <button class="sub-tab" id="subtab-diagramme" onclick="goMonitor('diagramme')">Diagramme</button>
+</div>
+
+<!-- ══════════ BONITUR PAGE ══════════ -->
+<div id="page-bonitur" class="page active">
+
+  <div class="date-bar">
+    <svg viewBox="0 0 24 24" fill="currentColor">
+      <path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+    </svg>
+    <span id="date-display"></span>
+  </div>
+
+  <!-- Feld -->
+  <div class="card">
+    <div class="card-title">📍 Feld</div>
+    <div id="feld-chips" class="chip-row"></div>
+    <div class="add-row">
+      <input id="new-feld" type="text" placeholder="Neues Feld hinzufügen…" />
+      <button onclick="addFeld()">+</button>
+    </div>
+  </div>
+
+  <!-- Kultur -->
+  <div class="card">
+    <div class="card-title">🌾 Kultur</div>
+    <div id="kultur-chips" class="chip-row"></div>
+  </div>
+
+  <!-- Schädling -->
+  <div class="card" id="card-schaedling" style="display:none">
+    <div class="card-title">🐛 Schädling</div>
+    <div id="schaedling-chips" class="chip-row"></div>
+  </div>
+
+  <!-- Zählung -->
+  <div class="card" id="card-zaehlung" style="display:none">
+    <div class="card-title">🔢 Anzahl (je 10 m²)</div>
+    <div id="zaehlung-rows"></div>
+  </div>
+
+  <!-- Notiz -->
+  <div class="card" id="card-notiz" style="display:none">
+    <div class="card-title">💬 Notiz (optional)</div>
+    <input class="notiz-input" id="notiz-input" type="text" placeholder="z.B. starker Befall im Randbereich…" />
+  </div>
+
+  <button class="btn-save" id="btn-save" style="display:none" onclick="saveBonitur()">
+    ✓ Bonitur speichern
+  </button>
+</div>
+
+<!-- ══════════ HISTORIE PAGE ══════════ -->
+<div id="page-historie" class="page">
+  <div class="filter-bar" id="hist-filter"></div>
+  <div id="hist-list"></div>
+</div>
+
+<!-- ══════════ DIAGRAMME PAGE ══════════ -->
+<div id="page-diagramme" class="page">
+  <div class="card">
+    <div class="card-title">🔎 Filter</div>
+    <div class="form-group">
+      <label>Kultur</label>
+      <select id="ch-kultur" onchange="updateCharts()">
+        <option value="">Alle Kulturen</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Feld</label>
+      <select id="ch-feld" onchange="updateCharts()">
+        <option value="">Alle Felder</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-num" id="stat-n">0</div>
+      <div class="stat-lbl">Bonituren</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-lbl">Schädlinge gesamt</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 Befallsverlauf</div>
+    <div class="chart-wrap"><canvas id="line-chart"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🥧 Verteilung nach Art</div>
+    <div class="chart-wrap"><canvas id="pie-chart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══════════ PSM PAGE ══════════ -->
+<div id="page-psm" class="page">
+
+  <div class="card">
+    <div class="card-title">🧪 Wirkstoff suchen</div>
+    <div class="psm-search-wrap">
+      <input class="psm-input" id="psm-wirkstoff" type="text"
+        placeholder="z.B. Tebuconazol, Glyphosat…"
+        autocomplete="off" oninput="onWirkstoffInput()" onkeydown="onWirkstoffKey(event)" />
+      <div class="autocomplete-list" id="psm-ac" style="display:none"></div>
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label>Kultur filtern (optional)</label>
+      <div class="psm-search-wrap">
+        <input class="psm-input" id="psm-kultur" type="text"
+          placeholder="z.B. Winterweizen, Kartoffel…"
+          autocomplete="off" oninput="onKulturInput()" onkeydown="onKulturKey(event)" />
+        <div class="autocomplete-list" id="psm-kultur-ac" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="psm-results"></div>
+</div>
+
+<!-- ══════════ SAATGUT PAGE ══════════ -->
+<div id="page-saatgut" class="page">
+  <div class="placeholder-page">
+    <div class="big-icon">🌱</div>
+    <h2>Saatgut</h2>
+    <p>Diese Funktion ist in Vorbereitung.<br>Hier kannst du bald Saatgutmengen, Sorten und Aussaatdaten verwalten.</p>
+  </div>
+</div>
+
+<!-- ══════════ FELDER PAGE ══════════ -->
+<div id="page-felder" class="page">
+
+  <!-- Merge mode bar -->
+  <div class="merge-bar" id="merge-bar">
+    <span id="merge-label">0 ausgewählt</span>
+    <button class="btn-confirm" onclick="confirmMerge()">Zusammenführen</button>
+    <button onclick="cancelMerge()">Abbrechen</button>
+  </div>
+
+  <!-- Add / Edit form -->
+  <div id="felder-form-wrap" style="display:none">
+    <div class="sd-form-card">
+      <div class="card-title" id="felder-form-title">📍 Neues Feld</div>
+      <input type="hidden" id="sd-feld-edit-id" value="" />
+      <input class="sd-input" id="sd-feld-name"    type="text"   placeholder="Feldname (z.B. Feld A)" />
+      <input class="sd-input" id="sd-feld-flaeche" type="number" placeholder="Fläche in ha (z.B. 12.5)" step="0.1" min="0" />
+      <select class="sd-input" id="sd-feld-kultur" style="margin-bottom:10px">
+        <option value="">Kultur wählen…</option>
+      </select>
+      <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
+        <div class="split-sub-label">🟡 Gelbschalen benennen (optional)</div>
+        <input class="sd-input" id="sd-feld-gelbschale1" type="text" placeholder="Gelbschale 1 (z.B. Nordseite)" style="margin-bottom:8px" />
+        <input class="sd-input" id="sd-feld-gelbschale2" type="text" placeholder="Gelbschale 2 (z.B. Südseite)" style="margin-bottom:10px" />
+      </div>
+      <div class="sd-btn-row">
+        <button class="btn-ok"     onclick="saveSdFeld()">Speichern</button>
+        <button class="btn-cancel" onclick="hideFeldForm()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Split form -->
+  <div id="split-form-wrap" style="display:none">
+    <div class="sd-form-card">
+      <div class="card-title">⬌ Feld aufteilen</div>
+      <div class="split-sub-label">Teilfeld 1</div>
+      <input class="sd-input" id="sd-split-name1"    type="text"   placeholder="Name Teilfeld 1" />
+      <input class="sd-input" id="sd-split-flaeche1" type="number" placeholder="Fläche in ha" step="0.1" min="0" oninput="onSplitFlaeche1()" />
+      <select class="sd-input" id="sd-split-kultur1" style="margin-bottom:4px"><option value="">Kultur wählen…</option></select>
+      <hr class="split-divider"/>
+      <div class="split-sub-label">Teilfeld 2</div>
+      <input class="sd-input" id="sd-split-name2"    type="text"   placeholder="Name Teilfeld 2" />
+      <input class="sd-input" id="sd-split-flaeche2" type="number" placeholder="Fläche in ha" step="0.1" readonly style="background:#f5f5f0;color:var(--muted)" />
+      <input type="hidden" id="sd-split-total" value="" />
+      <select class="sd-input" id="sd-split-kultur2" style="margin-bottom:10px"><option value="">Kultur wählen…</option></select>
+      <div class="sd-btn-row">
+        <button class="btn-ok"     onclick="saveSplit()">Aufteilen</button>
+        <button class="btn-cancel" onclick="hideSplitForm()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Merge confirm form -->
+  <div id="merge-form-wrap" style="display:none">
+    <div class="sd-form-card">
+      <div class="card-title">⬌ Zusammengeführtes Feld</div>
+      <input class="sd-input" id="sd-merge-name"    type="text"   placeholder="Name des zusammengeführten Feldes" />
+      <input class="sd-input" id="sd-merge-flaeche" type="number" placeholder="Gesamtfläche in ha" step="0.1" min="0" readonly style="background:#f5f5f0" />
+      <select class="sd-input" id="sd-merge-kultur" style="margin-bottom:10px"><option value="">Kultur wählen…</option></select>
+      <div class="sd-btn-row">
+        <button class="btn-ok"     onclick="saveMerge()">Zusammenführen</button>
+        <button class="btn-cancel" onclick="cancelMerge()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sd-top-row">
+    <button class="btn-add-main" onclick="showFeldForm()">+ Feld hinzufügen</button>
+    <button class="btn-sec"      onclick="toggleMergeMode()">⬌ Zusammenführen</button>
+  </div>
+  <div id="felder-list"></div>
+</div>
+
+<!-- ══════════ KULTUREN PAGE ══════════ -->
+<div id="page-kulturen" class="page">
+  <div id="kulturen-form-wrap" style="display:none">
+    <div class="sd-form-card">
+      <div class="card-title">🌾 Neue Kultur</div>
+      <input class="sd-input" id="sd-kult-name" type="text" placeholder="Kulturname (z.B. Sommergerste)" />
+      <div class="sd-btn-row">
+        <button class="btn-ok"     onclick="saveSdKultur()">Speichern</button>
+        <button class="btn-cancel" onclick="hideKulturForm()">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn-add-main" onclick="showKulturForm()">+ Kultur hinzufügen</button>
+  <div id="kulturen-list"></div>
+</div>
+
+<!-- ══════════ BOTTOM NAV ══════════ -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-monitor" onclick="goPage('monitor')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 12h-5v5h5v-5zM16 1v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-1V1h-2zm3 18H5V8h14v11z"/></svg>
+    Bonitur
+  </button>
+  <button class="nav-btn" id="nav-psm" onclick="goPage('psm')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2v6l2 2-2 2v6l6-4 6 4v-6l-2-2 2-2V2l-6 4-6-4zm6 6.5L9.5 7 12 5.5 14.5 7 12 8.5zm0 5L9.5 12l2.5-1.5 2.5 1.5L12 13.5zm-2.5 3.5L12 15.5l2.5 1.5L12 18.5 9.5 17z"/></svg>
+    PSM
+  </button>
+  <button class="nav-btn" id="nav-saatgut" onclick="goPage('saatgut')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2-8 2 2-5-8-3-8-3C6 8 7 12 7 12c.09.36.2.7.33 1.03C6.14 15.24 5 18 5 18h2c1-4 4-6 7-8 3.98-2.44 4.5-7 3-2-1.38 4.67-7 5-9 2-1.07 1.52.24 3.15 1.76 4.81.2-2.04-.79-3.82-2.08-5.19C9.98 8.49 11.82 8 17 8z"/></svg>
+    Saatgut
+  </button>
+  <button class="nav-btn" id="nav-stammdaten" onclick="goPage('stammdaten')">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.07-.44.18-.88.18-1.35C18 2.53 15.47 0 12.35 0c-1.7 0-3.21.75-4.25 1.95L6 4 4.9 2.95C4.36 2.36 3.59 2 2.77 2 1.23 2 0 3.23 0 4.77c0 .83.36 1.59.95 2.12L3 8.9V20c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-8l2 2V8l-3-2zm-8 13H7v-2h5v2zm0-4H7v-2h5v2zm5 4h-2v-2h2v2zm0-4h-2v-2h2v2zm1-8H6.17l-2.2-2.05C3.72 4.68 3.77 4 4.77 4c.28 0 .54.11.73.29L7 5.71 9.1 3.25C9.75 2.47 10.79 2 12.35 2 14.36 2 16 3.64 16 5.65c0 .35-.06.7-.14 1.03L15.59 8H18v1h-1l1 1h-1v7z"/></svg>
+    Stammdaten
+  </button>
+</nav>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// KONFIGURATION
+// ════════════════════════════════════════════════════════════════
+const CONFIG = {
+  "Winterraps": {
+    "Rüssler": ["Kohltriebrüssler", "Schwarzer Stengelrüssler"],
+    "Rapsglanzkäfer": [],
+    "Kohlerdfloh": [],
+    "Schnecken": [],
+    "Kohlschotenrüssler": [],
+    "Kohlschotenmücke": [],
+  },
+  "Winterweizen": {
+    "Blattläuse": [],
+    "Getreidehähnchen": [],
+    "Gallmücken": [],
+    "Fritfliege": [],
+  },
+  "Wintergerste": {
+    "Blattläuse": [],
+    "Getreidehähnchen": [],
+    "Fritfliege": [],
+    "Thripse": [],
+  },
+  "Mais": {
+    "Maiszünsler": [],
+    "Blattläuse": [],
+    "Fritfliege": [],
+    "Westl. Maiswurzelbohrer": [],
+  },
+  "Zuckerrüben": {
+    "Rübenderbrüssler": [],
+    "Blattläuse": [],
+    "Moosknopfkäfer": [],
+    "Rübenerdfloh": [],
+  },
+  "Kartoffeln": {
+    "Kartoffelkäfer": ["Käfer", "Larven"],
+    "Blattläuse": [],
+    "Drahtwürmer": [],
+  },
+};
+
+const PALETTE = ["#2e7d32","#e65100","#1565c0","#ad1457","#4527a0","#00695c","#827717"];
+
+// ════════════════════════════════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════════════════════════════════
+const defaultFelder = ["Feld A", "Feld B", "Feld C"];
+
+// Felder: extended objects {id, name, flaeche, kultur, gelbschalen}
+function loadFelder() {
+  let felder = JSON.parse(localStorage.getItem("stammdaten_felder") || "[]");
+  if (!felder.length) {
+    // Migrate from old string array
+    const old = JSON.parse(localStorage.getItem("felder") || JSON.stringify(defaultFelder));
+    felder = old.map((name, i) => ({ id: String(Date.now() + i), name, flaeche: null, kultur: null, gelbschalen: ["Gelbschale 1", "Gelbschale 2"] }));
+  }
+  // Ensure all felder have gelbschalen
+  felder = felder.map(f => ({
+    ...f,
+    gelbschalen: f.gelbschalen || ["Gelbschale 1", "Gelbschale 2"]
+  }));
+  return felder;
+}
+function saveFelder(f) { localStorage.setItem("stammdaten_felder", JSON.stringify(f)); }
+
+// Custom + deleted kulturen
+function loadCustomKulturen()    { return JSON.parse(localStorage.getItem("custom_kulturen")    || "[]"); }
+function saveCustomKulturen(k)   { localStorage.setItem("custom_kulturen",    JSON.stringify(k)); }
+function loadDeletedKulturen()   { return JSON.parse(localStorage.getItem("deleted_kulturen")   || "[]"); }
+function saveDeletedKulturen(d)  { localStorage.setItem("deleted_kulturen",   JSON.stringify(d)); }
+
+// Sorten: { kulturName: ["Sorte1", "Sorte2", ...] }
+function loadSorten()   { return JSON.parse(localStorage.getItem("kulturen_sorten") || "{}"); }
+function saveSorten(s)  { localStorage.setItem("kulturen_sorten", JSON.stringify(s)); }
+
+// All kulturen = built-in (minus deleted) + custom
+function allKulturen() {
+  const deleted = loadDeletedKulturen();
+  return [...Object.keys(CONFIG).filter(k => !deleted.includes(k)), ...loadCustomKulturen()];
+}
+
+function loadData()     { return JSON.parse(localStorage.getItem("bonitur") || "[]"); }
+function saveData(d)    { localStorage.setItem("bonitur", JSON.stringify(d)); }
+
+// ════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════
+let S = {
+  feld: null,
+  feldObj: null,   // full field object with gelbschalen array
+  kultur: null,
+  schaedling: null,
+  zaehlung: {},    // { gelbschaleName: { unterartName: count } }
+  zNames: [],      // unterart names in order
+  gelbschalenNames: [],  // custom names for each trap [name1, name2]
+};
+
+// ════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════
+const SECTION_LABELS = { monitor: "Bonitur", psm: "PSM", saatgut: "Saatgut", stammdaten: "Stammdaten" };
+let lastMonitorPage = "bonitur";
+let lastStammPage   = "felder";
+
+function goPage(section) {
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  const navBtn = document.getElementById("nav-" + section);
+  if (navBtn) navBtn.classList.add("active");
+  document.getElementById("header-sub").textContent = SECTION_LABELS[section] || "";
+
+  document.getElementById("monitor-tabs").classList.remove("visible");
+  document.getElementById("stamm-tabs").classList.remove("visible");
+
+  if (section === "monitor") {
+    document.getElementById("monitor-tabs").classList.add("visible");
+    goMonitor(lastMonitorPage);
+  } else if (section === "stammdaten") {
+    document.getElementById("stamm-tabs").classList.add("visible");
+    goStamm(lastStammPage);
+  } else {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById("page-" + section).classList.add("active");
+    if (section === "psm" && typeof PSM !== "undefined") initPsmPage();
+  }
+}
+
+function goMonitor(sub) {
+  lastMonitorPage = sub;
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + sub).classList.add("active");
+  document.querySelectorAll("#monitor-tabs .sub-tab").forEach(t => t.classList.remove("active"));
+  const subBtn = document.getElementById("subtab-" + sub);
+  if (subBtn) subBtn.classList.add("active");
+  if (sub === "historie") renderHistorie();
+  if (sub === "diagramme") initDiagramme();
+}
+
+function goStamm(sub) {
+  lastStammPage = sub;
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + sub).classList.add("active");
+  document.querySelectorAll("#stamm-tabs .sub-tab").forEach(t => t.classList.remove("active"));
+  const subBtn = document.getElementById("subtab-" + sub);
+  if (subBtn) subBtn.classList.add("active");
+  if (sub === "felder")   renderSdFelder();
+  if (sub === "kulturen") renderSdKulturen();
+}
+
+// ════════════════════════════════════════════════════════════════
+// BONITUR FORM INIT
+// ════════════════════════════════════════════════════════════════
+function initForm() {
+  // Date
+  const d = new Date();
+  document.getElementById("date-display").textContent =
+    d.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+
+  renderFeldChips();
+  renderKulturChips();
+}
+
+// ── Feld ──────────────────────────────────────────
+function renderFeldChips() {
+  const felder = loadFelder();
+  const el = document.getElementById("feld-chips");
+  el.innerHTML = "";
+  felder.forEach(f => {
+    const name = f.name || f; // backward compat
+    const b = document.createElement("button");
+    b.className = "chip" + (S.feld === name ? " selected" : "");
+    b.textContent = name;
+    b.onclick = () => selectFeld(name);
+    el.appendChild(b);
+  });
+}
+
+function addFeld() {
+  const input = document.getElementById("new-feld");
+  const name = input.value.trim();
+  if (!name) return;
+  const felder = loadFelder();
+  if (!felder.some(f => (f.name || f) === name)) {
+    felder.push({ id: Date.now().toString(), name, flaeche: null, kultur: null, gelbschalen: ["Gelbschale 1", "Gelbschale 2"] });
+    saveFelder(felder);
+  }
+  input.value = "";
+  selectFeld(name);
+}
+
+function selectFeld(f) {
+  S.feld = f;
+  // Find full field object
+  const felder = loadFelder();
+  S.feldObj = felder.find(fd => fd.name === f) || null;
+  S.gelbschalenNames = (S.feldObj && S.feldObj.gelbschalen) ? S.feldObj.gelbschalen : ["Gelbschale 1", "Gelbschale 2"];
+  renderFeldChips();
+}
+
+// ── Kultur ────────────────────────────────────────
+function renderKulturChips() {
+  const el = document.getElementById("kultur-chips");
+  el.innerHTML = "";
+  allKulturen().forEach(k => {
+    const b = document.createElement("button");
+    b.className = "chip" + (S.kultur === k ? " selected" : "");
+    b.textContent = k;
+    b.onclick = () => selectKultur(k);
+    el.appendChild(b);
+  });
+}
+
+function selectKultur(k) {
+  S.kultur = k;
+  S.schaedling = null;
+  // Initialize nested zaehlung structure: { gelbschaleName: { unterartName: count } }
+  S.zaehlung = {};
+  S.gelbschalenNames.forEach(gsName => {
+    S.zaehlung[gsName] = {};
+  });
+  S.zNames = [];
+  renderKulturChips();
+  renderSchaedlingChips();
+  hide("card-zaehlung");
+  hide("card-notiz");
+  hide("btn-save");
+}
+
+// ── Schädling ─────────────────────────────────────
+function renderSchaedlingChips() {
+  const el = document.getElementById("schaedling-chips");
+  el.innerHTML = "";
+  Object.keys(CONFIG[S.kultur] || { "Allgemein": [] }).forEach(s => {
+    const b = document.createElement("button");
+    b.className = "chip" + (S.schaedling === s ? " selected" : "");
+    b.textContent = s;
+    b.onclick = () => selectSchaedling(s);
+    el.appendChild(b);
+  });
+  show("card-schaedling");
+}
+
+function selectSchaedling(s) {
+  S.schaedling = s;
+  // Initialize nested structure for each gelbschale
+  S.gelbschalenNames.forEach(gsName => {
+    S.zaehlung[gsName] = {};
+  });
+
+  // update chip styles
+  document.querySelectorAll("#schaedling-chips .chip").forEach(c => {
+    c.classList.toggle("selected", c.textContent === s);
+  });
+
+  const unterarten = (CONFIG[S.kultur] || {})[s] || [];
+  S.zNames = unterarten.length > 0 ? unterarten : [s];
+
+  // Initialize counts for each gelbschale and unterart
+  S.gelbschalenNames.forEach(gsName => {
+    S.zaehlung[gsName] = {};
+    S.zNames.forEach(n => {
+      S.zaehlung[gsName][n] = 0;
+    });
+  });
+
+  // render counters with separate panels per Gelbschale
+  const container = document.getElementById("zaehlung-rows");
+  container.innerHTML = "";
+
+  S.gelbschalenNames.forEach(gsName => {
+    // Header for this Gelbschale
+    const header = document.createElement("div");
+    header.className = "gelbschale-header";
+    header.textContent = "🟡 " + gsName;
+    container.appendChild(header);
+
+    // Counter rows for each unterart in this gelbschale
+    S.zNames.forEach(name => {
+      const row = document.createElement("div");
+      row.className = "counter-row";
+      const counterId = `cv-${encodeURIComponent(gsName)}-${idx(name)}`;
+      row.innerHTML = `
+        <span class="counter-name">${name}</span>
+        <div class="counter-controls">
+          <button class="ctr-btn" data-gelbschale="${encAttr(gsName)}" data-unterart="${encAttr(name)}" data-d="-1">−</button>
+          <span class="ctr-val" id="${counterId}">0</span>
+          <button class="ctr-btn" data-gelbschale="${encAttr(gsName)}" data-unterart="${encAttr(name)}" data-d="1">+</button>
+        </div>`;
+      container.appendChild(row);
+    });
+  });
+
+  container.querySelectorAll(".ctr-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const gsName = btn.dataset.gelbschale;
+      const unterart = btn.dataset.unterart;
+      const delta = parseInt(btn.dataset.d);
+      S.zaehlung[gsName][unterart] = Math.max(0, (S.zaehlung[gsName][unterart] || 0) + delta);
+      const counterId = `cv-${encodeURIComponent(gsName)}-${S.zNames.indexOf(unterart)}`;
+      document.getElementById(counterId).textContent = S.zaehlung[gsName][unterart];
+    });
+  });
+
+  show("card-zaehlung");
+  show("card-notiz");
+  show("btn-save");
+}
+
+// helper: stable index key for element IDs
+function idx(name) {
+  return S.zNames.indexOf(name);
+}
+function encAttr(s) {
+  return s.replace(/&/g,"&amp;").replace(/"/g,"&quot;");
+}
+
+// ── Save ──────────────────────────────────────────
+function saveBonitur() {
+  if (!S.feld || !S.kultur || !S.schaedling) {
+    toast("⚠️ Bitte Feld, Kultur und Schädling wählen");
+    return;
+  }
+  const eintrag = {
+    id: Date.now().toString(),
+    datum: new Date().toISOString().slice(0,10),
+    feld: S.feld,
+    kultur: S.kultur,
+    schaedling: S.schaedling,
+    zaehlung: { ...S.zaehlung },  // nested: { gelbschaleName: { unterartName: count } }
+    gelbschalen: [...S.gelbschalenNames],  // save gelbschale names for reference
+    notiz: document.getElementById("notiz-input").value.trim(),
+  };
+  const data = loadData();
+  data.unshift(eintrag);
+  saveData(data);
+
+  // reset schaedling + counts, keep feld+kultur
+  S.schaedling = null;
+  S.gelbschalenNames.forEach(gsName => {
+    S.zaehlung[gsName] = {};
+  });
+  S.zNames = [];
+  document.querySelectorAll("#schaedling-chips .chip").forEach(c => c.classList.remove("selected"));
+  document.getElementById("notiz-input").value = "";
+  hide("card-zaehlung");
+  hide("card-notiz");
+  hide("btn-save");
+
+  toast("✓ Bonitur gespeichert!");
+}
+
+// ════════════════════════════════════════════════════════════════
+// HISTORIE
+// ════════════════════════════════════════════════════════════════
+let histFilter = "all";
+
+function renderHistorie() {
+  const data = loadData();
+
+  // filter bar
+  const felder = [...new Set(data.map(e => e.feld))];
+  const bar = document.getElementById("hist-filter");
+  bar.innerHTML = "";
+  [{ v: "all", label: "Alle" }, ...felder.map(f => ({ v: f, label: f }))].forEach(({ v, label }) => {
+    const b = document.createElement("button");
+    b.className = "f-chip" + (histFilter === v ? " active" : "");
+    b.textContent = label;
+    b.onclick = () => { histFilter = v; renderHistorie(); };
+    bar.appendChild(b);
+  });
+
+  // list
+  const filtered = histFilter === "all" ? data : data.filter(e => e.feld === histFilter);
+  const list = document.getElementById("hist-list");
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg>
+      <p>Noch keine Einträge</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(e => {
+    const d = new Date(e.datum).toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" });
+
+    // Handle both old flat format and new nested format
+    let countsHtml = "";
+    if (e.zaehlung && typeof e.zaehlung === "object") {
+      const firstKey = Object.keys(e.zaehlung)[0];
+      if (firstKey && typeof e.zaehlung[firstKey] === "object" && !Array.isArray(e.zaehlung[firstKey])) {
+        // New nested format: { gelbschaleName: { unterartName: count } }
+        countsHtml = Object.entries(e.zaehlung).map(([gsName, unterarten]) => {
+          const unterartCounts = Object.entries(unterarten)
+            .filter(([_, v]) => v > 0)
+            .map(([k, v]) => `${k}: <span>${v}</span>`)
+            .join(", ");
+          return unterartCounts ? `<strong>${gsName}:</strong> ${unterartCounts}` : null;
+        }).filter(Boolean).join(" &nbsp;|&nbsp; ");
+      } else {
+        // Old flat format: { unterartName: count }
+        countsHtml = Object.entries(e.zaehlung)
+          .filter(([_, v]) => v > 0)
+          .map(([k, v]) => `${k}: <span>${v}</span>`)
+          .join(" &nbsp;·&nbsp; ");
+      }
+    }
+
+    return `
+      <div class="entry-card">
+        <button class="del-btn" data-id="${e.id}">×</button>
+        <div class="entry-top">
+          <span class="entry-feld">📍 ${e.feld}</span>
+          <span class="entry-date">${d}</span>
         </div>
-      </section>
-
-      <section id="rechner-menu-view" class="panel view hidden" aria-labelledby="rechner-menu-heading">
-        <button type="button" class="back-button" data-action="back">Zurück</button>
-        <h2 id="rechner-menu-heading">Rechner</h2>
-        <p class="view-intro">Wähle einen Rechner.</p>
-        <div class="menu-grid">
-          <button type="button" class="menu-card" data-target="rechner">
-            <span class="menu-card__title">Saatgutrechner</span>
-            <span class="menu-card__subtitle">Aussaatmengen kalkulieren</span>
-          </button>
-          <button type="button" class="menu-card" data-target="psmRechner">
-            <span class="menu-card__title">PSM-Rechner</span>
-            <span class="menu-card__subtitle">Mittel für einen Tank berechnen</span>
-          </button>
+        <div class="entry-tags">
+          <span class="tag">${e.kultur}</span>
+          <span class="tag">${e.schaedling}</span>
         </div>
-      </section>
+        <div class="entry-counts">${countsHtml}</div>
+        ${e.notiz ? `<div class="entry-notiz">💬 ${e.notiz}</div>` : ""}
+      </div>`;
+  }).join("");
 
-      <section id="lager-menu-view" class="panel view hidden" aria-labelledby="lager-menu-heading">
-        <button type="button" class="back-button" data-action="back">Zurück</button>
-        <h2 id="lager-menu-heading">Lager</h2>
-        <p class="view-intro">Wähle einen Bereich.</p>
-        <div class="menu-grid">
-          <button type="button" class="menu-card" data-target="lager">
-            <span class="menu-card__title">Saatgutlager</span>
-            <span class="menu-card__subtitle">Sorten verwalten und dokumentieren</span>
-          </button>
-          <button type="button" class="menu-card" data-target="psmLager">
-            <span class="menu-card__title">Pflanzenschutzlager</span>
-            <span class="menu-card__subtitle">Mittel und Aufwandmengen pflegen</span>
-          </button>
+  list.querySelectorAll(".del-btn").forEach(btn => {
+    btn.onclick = () => {
+      if (!confirm("Eintrag löschen?")) return;
+      saveData(loadData().filter(e => e.id !== btn.dataset.id));
+      renderHistorie();
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// DIAGRAMME
+// ════════════════════════════════════════════════════════════════
+let lineChart = null, doughnutChart = null;
+
+function initDiagramme() {
+  const data = loadData();
+  const kulturen = [...new Set(data.map(e => e.kultur))];
+  const felder   = [...new Set(data.map(e => e.feld))];
+
+  const kSel = document.getElementById("ch-kultur").value;
+  const fSel = document.getElementById("ch-feld").value;
+
+  document.getElementById("ch-kultur").innerHTML =
+    '<option value="">Alle Kulturen</option>' +
+    kulturen.map(k => `<option value="${k}" ${k===kSel?"selected":""}>${k}</option>`).join("");
+  document.getElementById("ch-feld").innerHTML =
+    '<option value="">Alle Felder</option>' +
+    felder.map(f => `<option value="${f}" ${f===fSel?"selected":""}>${f}</option>`).join("");
+
+  updateCharts();
+}
+
+function updateCharts() {
+  const data = loadData();
+  const kF = document.getElementById("ch-kultur").value;
+  const fF = document.getElementById("ch-feld").value;
+
+  let filtered = data;
+  if (kF) filtered = filtered.filter(e => e.kultur === kF);
+  if (fF) filtered = filtered.filter(e => e.feld === fF);
+  filtered = [...filtered].sort((a,b) => a.datum.localeCompare(b.datum));
+
+  // Helper: flatten zaehlung to get total count (handles both old and new format)
+  function getTotalCount(zaehlung) {
+    if (!zaehlung) return 0;
+    const firstKey = Object.keys(zaehlung)[0];
+    if (firstKey && typeof zaehlung[firstKey] === "object" && !Array.isArray(zaehlung[firstKey])) {
+      // New nested format: { gelbschaleName: { unterartName: count } }
+      return Object.values(zaehlung).reduce((sum, unterarten) =>
+        sum + Object.values(unterarten).reduce((a, v) => a + v, 0), 0);
+    } else {
+      // Old flat format: { unterartName: count }
+      return Object.values(zaehlung).reduce((a, v) => a + v, 0);
+    }
+  }
+
+  // Helper: get all unterart names, flattened from nested structure
+  function getAllUnterarten(entries) {
+    const unterarten = new Set();
+    entries.forEach(e => {
+      if (e.zaehlung) {
+        const firstKey = Object.keys(e.zaehlung)[0];
+        if (firstKey && typeof e.zaehlung[firstKey] === "object" && !Array.isArray(e.zaehlung[firstKey])) {
+          // New nested format
+          Object.values(e.zaehlung).forEach(unterartenObj => {
+            Object.keys(unterartenObj).forEach(u => unterarten.add(u));
+          });
+        } else {
+          // Old flat format
+          Object.keys(e.zaehlung).forEach(k => unterarten.add(k));
+        }
+      }
+    });
+    return [...unterarten];
+  }
+
+  // Helper: get summed count for an unterart across all gelbschalen in an entry
+  function getUnterartTotal(entry, unterart) {
+    if (!entry.zaehlung) return 0;
+    const firstKey = Object.keys(entry.zaehlung)[0];
+    if (firstKey && typeof entry.zaehlung[firstKey] === "object" && !Array.isArray(entry.zaehlung[firstKey])) {
+      // New nested format: sum across all gelbschalen
+      return Object.values(entry.zaehlung).reduce((sum, unterarten) =>
+        sum + (unterarten[unterart] || 0), 0);
+    } else {
+      // Old flat format
+      return entry.zaehlung[unterart] || 0;
+    }
+  }
+
+  // Stats
+  document.getElementById("stat-n").textContent = filtered.length;
+  const total = filtered.reduce((s, e) => s + getTotalCount(e.zaehlung), 0);
+  document.getElementById("stat-total").textContent = total;
+
+  // ── Line chart ─────────────────────────────────
+  const allUnterten = getAllUnterarten(filtered);
+  const dates = [...new Set(filtered.map(e => e.datum))];
+
+  const lineDatasets = allUnterten.map((u, i) => ({
+    label: u,
+    data: dates.map(d => {
+      const entry = filtered.find(e => e.datum === d);
+      return entry != null ? getUnterartTotal(entry, u) : null;
+    }),
+    borderColor: PALETTE[i % PALETTE.length],
+    backgroundColor: PALETTE[i % PALETTE.length] + "22",
+    fill: true,
+    tension: .35,
+    spanGaps: true,
+    pointRadius: 5,
+    pointHoverRadius: 7,
+  }));
+
+  const lineCtx = document.getElementById("line-chart").getContext("2d");
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(lineCtx, {
+    type: "line",
+    data: {
+      labels: dates.map(d => new Date(d).toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit" })),
+      datasets: lineDatasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { font: { size: 11 } } } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } },
+        x: { ticks: { font: { size: 11 } } },
+      },
+    },
+  });
+
+  // ── Doughnut chart ─────────────────────────────
+  const totals = {};
+  filtered.forEach(e => {
+    allUnterten.forEach(u => {
+      totals[u] = (totals[u] || 0) + getUnterartTotal(e, u);
+    });
+  });
+
+  const pieCtx = document.getElementById("pie-chart").getContext("2d");
+  if (doughnutChart) doughnutChart.destroy();
+  if (Object.keys(totals).length === 0) { doughnutChart = null; return; }
+
+  doughnutChart = new Chart(pieCtx, {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(totals),
+      datasets: [{
+        data: Object.values(totals),
+        backgroundColor: PALETTE.slice(0, Object.keys(totals).length),
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { font: { size: 11 } } } },
+    },
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════
+function show(id) { const el = document.getElementById(id); if (el) el.style.display = ""; }
+function hide(id) { const el = document.getElementById(id); if (el) el.style.display = "none"; }
+
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2600);
+}
+
+// ════════════════════════════════════════════════════════════════
+// PSM SUCHE
+// ════════════════════════════════════════════════════════════════
+
+// Decode a record from compact format
+function decodeRec(r) {
+  return {
+    handelsname:     PSM.n[r[0]] || "",
+    kultur:          PSM.k[r[1]] || "",
+    schaderreger:    r[2] || "",
+    wirkstoff:       PSM.w[r[3]] || "",
+    aufwand:         r[4] || "",
+    anw_haeufigkeit: r[5] || "",
+    zulassungsende:  r[6] || "",
+    wartezeit:       r[7] || "",
+  };
+}
+
+let psmAcFocusIdx = -1;
+let psmInited = false;
+
+let psmKulturAcFocusIdx = -1;
+
+function initPsmPage() {
+  if (psmInited) return;
+  psmInited = true;
+
+  document.addEventListener("click", e => {
+    if (!e.target.closest("#psm-wirkstoff") && !e.target.closest("#psm-ac")) {
+      document.getElementById("psm-ac").style.display = "none";
+    }
+    if (!e.target.closest("#psm-kultur") && !e.target.closest("#psm-kultur-ac")) {
+      document.getElementById("psm-kultur-ac").style.display = "none";
+    }
+  });
+}
+
+function onKulturInput() {
+  const q = document.getElementById("psm-kultur").value.trim().toLowerCase();
+  const ac = document.getElementById("psm-kultur-ac");
+  psmKulturAcFocusIdx = -1;
+
+  if (q.length < 2) { ac.style.display = "none"; runPsmSearch(); return; }
+
+  const matches = [...PSM.k].sort()
+    .filter(k => k.toLowerCase().includes(q))
+    .slice(0, 20);
+
+  if (!matches.length) { ac.style.display = "none"; runPsmSearch(); return; }
+
+  ac.innerHTML = matches.map(k => {
+    const hi = k.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi"),
+      '<span class="ac-match">$1</span>');
+    return `<div class="ac-item" data-val="${k.replace(/"/g,'&quot;')}">${hi}</div>`;
+  }).join("");
+
+  ac.querySelectorAll(".ac-item").forEach(item => {
+    item.addEventListener("click", () => {
+      document.getElementById("psm-kultur").value = item.dataset.val;
+      ac.style.display = "none";
+      runPsmSearch();
+    });
+  });
+
+  ac.style.display = "block";
+  runPsmSearch();
+}
+
+function onKulturKey(e) {
+  const ac = document.getElementById("psm-kultur-ac");
+  const items = ac.querySelectorAll(".ac-item");
+  if (!items.length || ac.style.display === "none") {
+    if (e.key === "Enter") runPsmSearch();
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    psmKulturAcFocusIdx = Math.min(psmKulturAcFocusIdx + 1, items.length - 1);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    psmKulturAcFocusIdx = Math.max(psmKulturAcFocusIdx - 1, -1);
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (psmKulturAcFocusIdx >= 0) {
+      document.getElementById("psm-kultur").value = items[psmKulturAcFocusIdx].dataset.val;
+      ac.style.display = "none";
+      runPsmSearch();
+    } else {
+      ac.style.display = "none";
+      runPsmSearch();
+    }
+    return;
+  } else if (e.key === "Escape") {
+    ac.style.display = "none";
+    return;
+  }
+  items.forEach((item, i) => item.classList.toggle("focused", i === psmKulturAcFocusIdx));
+  if (psmKulturAcFocusIdx >= 0) items[psmKulturAcFocusIdx].scrollIntoView({ block: "nearest" });
+}
+
+function onWirkstoffInput() {
+  const q = document.getElementById("psm-wirkstoff").value.trim().toLowerCase();
+  const ac = document.getElementById("psm-ac");
+  psmAcFocusIdx = -1;
+
+  if (q.length < 2) { ac.style.display = "none"; return; }
+
+  const matches = PSM.w
+    .filter(w => w.toLowerCase().includes(q))
+    .slice(0, 20);
+
+  if (!matches.length) { ac.style.display = "none"; return; }
+
+  ac.innerHTML = matches.map((w, i) => {
+    const hi = w.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")})`, "gi"),
+      '<span class="ac-match">$1</span>');
+    return `<div class="ac-item" data-val="${w.replace(/"/g,'&quot;')}">${hi}</div>`;
+  }).join("");
+
+  ac.querySelectorAll(".ac-item").forEach(item => {
+    item.addEventListener("click", () => {
+      document.getElementById("psm-wirkstoff").value = item.dataset.val;
+      ac.style.display = "none";
+      runPsmSearch();
+    });
+  });
+
+  ac.style.display = "block";
+}
+
+function onWirkstoffKey(e) {
+  const ac = document.getElementById("psm-ac");
+  const items = ac.querySelectorAll(".ac-item");
+  if (!items.length || ac.style.display === "none") {
+    if (e.key === "Enter") runPsmSearch();
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    psmAcFocusIdx = Math.min(psmAcFocusIdx + 1, items.length - 1);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    psmAcFocusIdx = Math.max(psmAcFocusIdx - 1, -1);
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (psmAcFocusIdx >= 0) {
+      document.getElementById("psm-wirkstoff").value = items[psmAcFocusIdx].dataset.val;
+      ac.style.display = "none";
+      runPsmSearch();
+    } else {
+      ac.style.display = "none";
+      runPsmSearch();
+    }
+    return;
+  } else if (e.key === "Escape") {
+    ac.style.display = "none";
+    return;
+  }
+  items.forEach((item, i) => item.classList.toggle("focused", i === psmAcFocusIdx));
+  if (psmAcFocusIdx >= 0) items[psmAcFocusIdx].scrollIntoView({ block: "nearest" });
+}
+
+function runPsmSearch() {
+  const wirkstoff = document.getElementById("psm-wirkstoff").value.trim();
+  const kultur    = document.getElementById("psm-kultur").value;
+  const container = document.getElementById("psm-results");
+
+  if (!wirkstoff) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const wLower = wirkstoff.toLowerCase();
+
+  // Filter records
+  let matched = PSM.d.filter(r => {
+    const w = PSM.w[r[3]] || "";
+    if (!w.toLowerCase().includes(wLower)) return false;
+    if (kultur && !(PSM.k[r[1]] || "").toLowerCase().includes(kultur.toLowerCase())) return false;
+    return true;
+  });
+
+  if (!matched.length) {
+    container.innerHTML = `<div class="empty"><p>Keine Mittel gefunden für<br><strong>${wirkstoff}</strong></p></div>`;
+    return;
+  }
+
+  // Group by Handelsname
+  const grouped = {};
+  matched.forEach(r => {
+    const name = PSM.n[r[0]] || "—";
+    if (!grouped[name]) grouped[name] = { wirkstoff: PSM.w[r[3]], eintraege: [] };
+    grouped[name].eintraege.push(r);
+  });
+
+  const names = Object.keys(grouped).sort();
+
+  container.innerHTML = `<div class="psm-count-bar"><strong>${matched.length}</strong> Anwendungen in <strong>${names.length}</strong> Mitteln</div>` +
+    names.map(name => {
+      const g = grouped[name];
+      const rows = g.eintraege.map(r => {
+        const zul = r[6] || "";
+        // Check if approval is expiring within 1 year
+        const zulDate = zul.match(/(\d{2}\.\d{2}\.\d{4})/)?.[1];
+        let zulWarn = false;
+        if (zulDate) {
+          const [d2,m2,y2] = zulDate.split(".").map(Number);
+          const expiry = new Date(y2, m2-1, d2);
+          const inOneYear = new Date(); inOneYear.setFullYear(inOneYear.getFullYear()+1);
+          zulWarn = expiry < inOneYear;
+        }
+        return `
+          <div class="psm-row">
+            <span class="psm-lbl">Kultur</span>
+            <span class="psm-val">${PSM.k[r[1]] || "—"}</span>
+          </div>
+          <div class="psm-row">
+            <span class="psm-lbl">Schaderreger</span>
+            <span class="psm-val">${r[2] || "—"}</span>
+          </div>
+          <div class="psm-row">
+            <span class="psm-lbl">Aufwand</span>
+            <span class="psm-val">${r[4] || "—"}</span>
+          </div>
+          <div class="psm-row">
+            <span class="psm-lbl">Anw.-Häufigkeit</span>
+            <span class="psm-val">${r[5] || "—"}</span>
+          </div>
+          <div class="psm-row">
+            <span class="psm-lbl">Wartezeit</span>
+            <span class="psm-val">${r[7] || "—"}</span>
+          </div>
+          <div class="psm-row">
+            <span class="psm-lbl">Zulassung bis</span>
+            <span class="psm-val ${zulWarn ? 'warn' : ''}">${zul || "—"}${zulWarn ? ' ⚠️' : ''}</span>
+          </div>
+          <hr style="border:none;border-top:3px solid var(--bg);margin:6px -14px">`;
+      }).join("");
+
+      return `
+        <div class="psm-result-card">
+          <div class="psm-card-header">
+            <span class="psm-name">🧴 ${name}</span>
+            <span class="psm-wirkstoff-badge">${g.wirkstoff}</span>
+          </div>
+          <div class="psm-body">${rows}</div>
+        </div>`;
+    }).join("");
+}
+
+// ════════════════════════════════════════════════════════════════
+// STAMMDATEN
+// ════════════════════════════════════════════════════════════════
+
+let sdMergeMode     = false;
+let sdMergeSelected = new Set(); // field IDs selected for merge
+let sdSplitId       = null;      // ID of field being split
+let expandedSorten  = {};        // { kulturName: bool }
+
+function populateKulturSel(selId) {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = '<option value="">Kultur wählen…</option>' +
+    allKulturen().map(k => `<option value="${k}">${k}</option>`).join("");
+}
+
+// ── Felder — Render ──────────────────────────────────────────
+function renderSdFelder() {
+  const felder = loadFelder();
+  const list   = document.getElementById("felder-list");
+  if (!felder.length) {
+    list.innerHTML = `<div class="empty"><p>Noch keine Felder angelegt</p></div>`;
+    return;
+  }
+  list.innerHTML = felder.map(f => {
+    const name    = f.name || f;
+    const flaeche = f.flaeche != null ? `${f.flaeche} ha` : "– ha";
+    const kultur  = f.kultur || "–";
+    const checked = sdMergeSelected.has(f.id) ? "checked" : "";
+    return `
+      <div class="sd-wrap" id="fw-${f.id}">
+        <div class="sd-item">
+          ${sdMergeMode ? `<input type="checkbox" class="sd-check" data-id="${f.id}" ${checked} onchange="onMergeCheck(this)">` : ""}
+          <div class="sd-item-info">
+            <div class="sd-item-name">📍 ${name}</div>
+            <div class="sd-item-meta">${flaeche} · ${kultur}</div>
+          </div>
         </div>
-      </section>
+        ${!sdMergeMode ? `
+        <div class="sd-actions">
+          <button class="sd-action-btn" data-id="${f.id}" data-action="edit">✏️ Bearbeiten</button>
+          <button class="sd-action-btn" data-id="${f.id}" data-action="split">⬌ Teilen</button>
+          <button class="sd-action-btn danger" data-id="${f.id}" data-action="del">🗑 Löschen</button>
+        </div>` : ""}
+      </div>`;
+  }).join("");
 
-      <section id="lager-view" class="panel view hidden" aria-labelledby="lager-heading">
-        <button type="button" class="back-button" data-action="back">Zurück</button>
-        <h2 id="lager-heading">Saatgutlager</h2>
-        <form id="seed-form" class="form-grid">
-          <input type="hidden" id="seed-id" />
+  list.querySelectorAll(".sd-action-btn").forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      if (btn.dataset.action === "edit")  editFeld(id);
+      if (btn.dataset.action === "split") splitFeld(id);
+      if (btn.dataset.action === "del")   deleteFeldById(id);
+    };
+  });
+}
 
-          <label for="seed-name">Sortenname</label>
-          <input id="seed-name" type="text" placeholder="z. B. Winterweizen Beispiel" required />
+// ── Felder — Add / Edit ──────────────────────────────────────
+function showFeldForm(editId) {
+  populateKulturSel("sd-feld-kultur");
+  hideSplitForm();
+  document.getElementById("merge-form-wrap").style.display = "none";
+  const isEdit = !!editId;
+  document.getElementById("sd-feld-edit-id").value = editId || "";
+  document.getElementById("felder-form-title").textContent = isEdit ? "✏️ Feld bearbeiten" : "📍 Neues Feld";
+  if (isEdit) {
+    const f = loadFelder().find(f => f.id === editId);
+    if (!f) return;
+    document.getElementById("sd-feld-name").value       = f.name || "";
+    document.getElementById("sd-feld-flaeche").value    = f.flaeche || "";
+    document.getElementById("sd-feld-kultur").value     = f.kultur || "";
+    document.getElementById("sd-feld-gelbschale1").value = (f.gelbschalen || [])[0] || "Gelbschale 1";
+    document.getElementById("sd-feld-gelbschale2").value = (f.gelbschalen || [])[1] || "Gelbschale 2";
+  } else {
+    document.getElementById("sd-feld-name").value       = "";
+    document.getElementById("sd-feld-flaeche").value    = "";
+    document.getElementById("sd-feld-kultur").value     = "";
+    document.getElementById("sd-feld-gelbschale1").value = "Gelbschale 1";
+    document.getElementById("sd-feld-gelbschale2").value = "Gelbschale 2";
+  }
+  document.getElementById("felder-form-wrap").style.display = "block";
+  document.getElementById("sd-feld-name").focus();
+}
+function hideFeldForm() {
+  document.getElementById("felder-form-wrap").style.display = "none";
+}
+function editFeld(id) { showFeldForm(id); }
 
-          <label for="seed-crop">Kultur</label>
-          <select id="seed-crop" required>
-            <option value="">Bitte Kultur wählen</option>
-            <option value="Winterweizen">Winterweizen</option>
-            <option value="Sommerdurum">Sommerdurum</option>
-            <option value="Winterraps">Winterraps</option>
-            <option value="Wintergerste">Wintergerste</option>
-            <option value="Mais">Mais</option>
-            <option value="Zuckerrüben">Zuckerrüben</option>
-            <option value="Erbsen">Erbsen</option>
-            <option value="Sojabohnen">Sojabohnen</option>
-          </select>
+function saveSdFeld() {
+  const editId      = document.getElementById("sd-feld-edit-id").value;
+  const name        = document.getElementById("sd-feld-name").value.trim();
+  const flaeche     = parseFloat(document.getElementById("sd-feld-flaeche").value) || null;
+  const kultur      = document.getElementById("sd-feld-kultur").value || null;
+  const gelbschale1 = document.getElementById("sd-feld-gelbschale1").value.trim() || "Gelbschale 1";
+  const gelbschale2 = document.getElementById("sd-feld-gelbschale2").value.trim() || "Gelbschale 2";
+  if (!name) { toast("⚠️ Bitte Feldname eingeben"); return; }
 
-          <label for="seed-germination">Keimfähigkeit (%)</label>
-          <input id="seed-germination" type="number" min="0" max="100" step="0.1" required />
+  let felder = loadFelder();
+  const gelbschalen = [gelbschale1, gelbschale2];
+  if (editId) {
+    felder = felder.map(f => f.id === editId ? { ...f, name, flaeche, kultur, gelbschalen } : f);
+    toast("✓ Feld aktualisiert");
+  } else {
+    if (felder.some(f => (f.name || f) === name)) { toast("⚠️ Feld bereits vorhanden"); return; }
+    felder.push({ id: Date.now().toString(), name, flaeche, kultur, gelbschalen });
+    toast("✓ Feld gespeichert");
+  }
+  saveFelder(felder);
+  hideFeldForm();
+  renderSdFelder();
+  renderFeldChips();
+}
 
-          <label for="seed-tkg">TKG (g)</label>
-          <input id="seed-tkg" type="number" min="0" step="0.1" required />
+// ── Felder — Split ────────────────────────────────────────────
+function splitFeld(id) {
+  sdSplitId = id;
+  const f = loadFelder().find(f => f.id === id);
+  if (!f) return;
+  populateKulturSel("sd-split-kultur1");
+  populateKulturSel("sd-split-kultur2");
+  hideFeldForm();
+  document.getElementById("merge-form-wrap").style.display = "none";
+  // Pre-fill suggestions
+  const name = f.name || f;
+  document.getElementById("sd-split-name1").value    = name + " A";
+  document.getElementById("sd-split-name2").value    = name + " B";
+  document.getElementById("sd-split-total").value    = f.flaeche || "";
+  document.getElementById("sd-split-flaeche1").value = f.flaeche ? (f.flaeche / 2).toFixed(1) : "";
+  document.getElementById("sd-split-flaeche2").value = f.flaeche ? (f.flaeche / 2).toFixed(1) : "";
+  document.getElementById("sd-split-kultur1").value  = f.kultur || "";
+  document.getElementById("sd-split-kultur2").value  = f.kultur || "";
+  document.getElementById("split-form-wrap").style.display = "block";
+}
+function onSplitFlaeche1() {
+  const total = parseFloat(document.getElementById("sd-split-total").value);
+  const val1  = parseFloat(document.getElementById("sd-split-flaeche1").value);
+  if (!isNaN(total) && !isNaN(val1)) {
+    const rest = Math.max(0, Math.round((total - val1) * 10) / 10);
+    document.getElementById("sd-split-flaeche2").value = rest;
+  }
+}
+function hideSplitForm() {
+  document.getElementById("split-form-wrap").style.display = "none";
+  sdSplitId = null;
+}
+function saveSplit() {
+  const n1 = document.getElementById("sd-split-name1").value.trim();
+  const n2 = document.getElementById("sd-split-name2").value.trim();
+  if (!n1 || !n2) { toast("⚠️ Beide Feldnamen eingeben"); return; }
 
-          <fieldset class="seed-density-fieldset">
-            <legend>Empfohlener Zielbestand (Pflanzen/m²)</legend>
-            <div class="seed-density-grid">
-              <div class="seed-density-item">
-                <label for="seed-target-early">Früh</label>
-                <input id="seed-target-early" type="number" min="0" step="1" placeholder="z. B. 320" />
-              </div>
-              <div class="seed-density-item">
-                <label for="seed-target-mid">Mittel</label>
-                <input id="seed-target-mid" type="number" min="0" step="1" placeholder="z. B. 300" />
-              </div>
-              <div class="seed-density-item">
-                <label for="seed-target-late">Spät</label>
-                <input id="seed-target-late" type="number" min="0" step="1" placeholder="z. B. 280" />
-              </div>
-            </div>
-          </fieldset>
+  // Get original field to inherit gelbschalen
+  const originalFeld = loadFelder().find(f => f.id === sdSplitId);
+  const originalGelbschalen = (originalFeld && originalFeld.gelbschalen) ? originalFeld.gelbschalen : ["Gelbschale 1", "Gelbschale 2"];
 
-          <label for="seed-notes">Notizen (optional)</label>
-          <textarea id="seed-notes" rows="2" placeholder="z. B. Besonderheiten, Saattermin"></textarea>
+  const f1 = {
+    id: Date.now().toString(),
+    name: n1,
+    flaeche: parseFloat(document.getElementById("sd-split-flaeche1").value) || null,
+    kultur: document.getElementById("sd-split-kultur1").value || null,
+    gelbschalen: [...originalGelbschalen]
+  };
+  const f2 = {
+    id: (Date.now()+1).toString(),
+    name: n2,
+    flaeche: parseFloat(document.getElementById("sd-split-flaeche2").value) || null,
+    kultur: document.getElementById("sd-split-kultur2").value || null,
+    gelbschalen: [...originalGelbschalen]
+  };
+  let felder = loadFelder().filter(f => f.id !== sdSplitId);
+  felder.push(f1, f2);
+  saveFelder(felder);
+  hideSplitForm();
+  renderSdFelder();
+  renderFeldChips();
+  toast("✓ Feld aufgeteilt");
+}
 
-          <button type="submit" class="primary">Speichern</button>
-          <button type="button" id="cancel-edit" class="secondary hidden">Abbrechen</button>
-        </form>
+// ── Felder — Merge ────────────────────────────────────────────
+function toggleMergeMode() {
+  sdMergeMode = !sdMergeMode;
+  sdMergeSelected.clear();
+  hideFeldForm();
+  hideSplitForm();
+  document.getElementById("merge-form-wrap").style.display = "none";
+  document.getElementById("merge-bar").classList.toggle("visible", sdMergeMode);
+  updateMergeLabel();
+  renderSdFelder();
+}
+function cancelMerge() {
+  sdMergeMode = false;
+  sdMergeSelected.clear();
+  document.getElementById("merge-bar").classList.remove("visible");
+  document.getElementById("merge-form-wrap").style.display = "none";
+  renderSdFelder();
+}
+function onMergeCheck(cb) {
+  if (cb.checked) sdMergeSelected.add(cb.dataset.id);
+  else            sdMergeSelected.delete(cb.dataset.id);
+  updateMergeLabel();
+}
+function updateMergeLabel() {
+  document.getElementById("merge-label").textContent = `${sdMergeSelected.size} Felder ausgewählt`;
+}
+function confirmMerge() {
+  if (sdMergeSelected.size < 2) { toast("⚠️ Mindestens 2 Felder auswählen"); return; }
+  const felder   = loadFelder();
+  const selected = felder.filter(f => sdMergeSelected.has(f.id));
+  const totalHa  = selected.reduce((s, f) => s + (f.flaeche || 0), 0);
+  populateKulturSel("sd-merge-kultur");
+  document.getElementById("sd-merge-name").value    = selected.map(f => f.name || f).join(" + ");
+  document.getElementById("sd-merge-flaeche").value = totalHa > 0 ? totalHa.toFixed(1) : "";
+  document.getElementById("sd-merge-kultur").value  = selected[0].kultur || "";
+  document.getElementById("merge-form-wrap").style.display = "block";
+}
+function saveMerge() {
+  const name    = document.getElementById("sd-merge-name").value.trim();
+  const flaeche = parseFloat(document.getElementById("sd-merge-flaeche").value) || null;
+  const kultur  = document.getElementById("sd-merge-kultur").value || null;
+  if (!name) { toast("⚠️ Bitte Namen eingeben"); return; }
 
-        <div class="table-wrapper">
-          <table aria-live="polite">
-            <thead>
-              <tr>
-                <th>Sorte</th>
-                <th>Kultur</th>
-                <th>Keimfähigkeit (%)</th>
-                <th>TKG (g)</th>
-                <th>Zielbestand (Früh/Mittel/Spät)</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="seed-table-body"></tbody>
-          </table>
+  // Get gelbschalen from the first selected field
+  const felder = loadFelder();
+  const selectedFields = felder.filter(f => sdMergeSelected.has(f.id));
+  const gelbschalen = (selectedFields[0] && selectedFields[0].gelbschalen) ? selectedFields[0].gelbschalen : ["Gelbschale 1", "Gelbschale 2"];
+
+  let remaining = felder.filter(f => !sdMergeSelected.has(f.id));
+  remaining.push({ id: Date.now().toString(), name, flaeche, kultur, gelbschalen });
+  saveFelder(remaining);
+  document.getElementById("merge-form-wrap").style.display = "none";
+  cancelMerge();
+  toast("✓ Felder zusammengeführt");
+}
+
+// ── Felder — Delete ───────────────────────────────────────────
+function deleteFeldById(id) {
+  const f = loadFelder().find(f => f.id === id);
+  if (!confirm(`Feld "${f ? (f.name||f) : ''}" löschen?`)) return;
+  saveFelder(loadFelder().filter(f => f.id !== id));
+  renderSdFelder();
+  renderFeldChips();
+}
+
+// ── Kulturen ──────────────────────────────────────────────────
+function renderSdKulturen() {
+  const deleted = loadDeletedKulturen();
+  const builtin = Object.keys(CONFIG).map(k => ({ name: k, builtin: true,  visible: !deleted.includes(k) }));
+  const custom  = loadCustomKulturen().map(k  => ({ name: k, builtin: false, visible: true }));
+  const all     = [...builtin, ...custom];
+  const sorten  = loadSorten();
+  const list    = document.getElementById("kulturen-list");
+
+  list.innerHTML = all.map(item => {
+    const exp     = expandedSorten[item.name] ? "open" : "";
+    const sortArr = sorten[item.name] || [];
+    const sortenHTML = exp ? `
+      <div class="sorten-section">
+        ${sortArr.length
+          ? sortArr.map(s => `
+            <div class="sorte-row">
+              <span class="sorte-name">🌿 ${s}</span>
+              <button class="sorte-del" data-k="${item.name.replace(/"/g,'&quot;')}" data-s="${s.replace(/"/g,'&quot;')}">×</button>
+            </div>`).join("")
+          : `<div style="font-size:13px;color:var(--muted);padding:4px 0">Noch keine Sorten eingetragen</div>`}
+        <div class="sorte-add-row">
+          <input type="text" id="sorte-input-${item.name.replace(/\s/g,'_')}" placeholder="Neue Sorte…" />
+          <button data-k="${item.name.replace(/"/g,'&quot;')}" class="sorte-add-btn">+</button>
         </div>
-      </section>
-
-      <section id="psm-lager-view" class="panel view hidden" aria-labelledby="psm-lager-heading">
-        <button type="button" class="back-button" data-action="back">Zurück</button>
-        <h2 id="psm-lager-heading">Pflanzenschutzmittellager</h2>
-        <form id="psm-form" class="form-grid">
-          <input type="hidden" id="psm-id" />
-
-          <label for="psm-name">Mittelname</label>
-          <input id="psm-name" type="text" placeholder="z. B. Carax" required />
-
-          <fieldset class="psm-application-fieldset">
-            <legend>Verwendungen</legend>
-            <div id="psm-application-list" class="psm-application-list" aria-live="polite"></div>
-            <button type="button" id="add-psm-application" class="secondary add-application-button">
-              Verwendung hinzufügen
-            </button>
-          </fieldset>
-
-          <button type="submit" class="primary">Speichern</button>
-          <button type="button" id="psm-cancel-edit" class="secondary hidden">Abbrechen</button>
-        </form>
-
-        <template id="psm-application-template">
-          <div class="psm-application-row">
-            <select class="psm-application-crop" required>
-              <option value="">Bitte Kultur wählen</option>
-              <option value="Winterweizen">Winterweizen</option>
-              <option value="Sommerdurum">Sommerdurum</option>
-              <option value="Winterraps">Winterraps</option>
-              <option value="Wintergerste">Wintergerste</option>
-              <option value="Mais">Mais</option>
-              <option value="Zuckerrüben">Zuckerrüben</option>
-              <option value="Erbsen">Erbsen</option>
-              <option value="Sojabohnen">Sojabohnen</option>
-            </select>
-            <div class="psm-amount-input">
-              <input
-                type="number"
-                class="psm-application-amount"
-                min="0"
-                step="0.01"
-                placeholder="z. B. 0,7"
-                required
-              />
-              <select class="psm-application-unit">
-                <option value="l">l</option>
-                <option value="g">g</option>
-              </select>
-            </div>
-            <button
-              type="button"
-              class="icon-button"
-              data-action="remove-psm-application"
-              aria-label="Verwendung entfernen"
-            >
-              ×
-            </button>
+      </div>` : "";
+    return `
+      <div class="sd-wrap">
+        <div class="sd-item">
+          <div class="sd-item-info">
+            <div class="sd-item-name">🌾 ${item.name}</div>
+            ${sortArr.length ? `<div class="sd-item-meta">${sortArr.length} Sorte${sortArr.length!==1?'n':''}</div>` : ""}
           </div>
-        </template>
-
-        <div class="table-wrapper">
-          <table aria-live="polite">
-            <thead>
-              <tr>
-                <th>Mittel</th>
-                <th>Kulturen &amp; Aufwandmengen</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="psm-table-body"></tbody>
-          </table>
+          <span class="sd-badge ${item.builtin ? 'builtin' : ''}">${item.builtin ? 'Standard' : 'Eigene'}</span>
+          <button class="expand-btn ${exp}" data-k="${item.name.replace(/"/g,'&quot;')}">▶</button>
         </div>
-      </section>
+        ${sortenHTML}
+        <div class="sd-actions">
+          <button class="sd-action-btn danger" data-k="${item.name.replace(/"/g,'&quot;')}" data-builtin="${item.builtin}">🗑 Löschen</button>
+        </div>
+      </div>`;
+  }).join("");
 
-      <section id="rechner-view" class="panel view hidden" aria-labelledby="rechner-heading">
-        <button type="button" class="back-button" data-action="back">Zurück</button>
-        <h2 id="rechner-heading">Saatgutrechner</h2>
-        <form id="calculator-form" class="form-grid">
-          <label for="calculator-variety">Sorte</label>
-          <select id="calculator-variety" required>
-            <option value="">Bitte Sorte wählen</option>
-          </select>
+  // Expand buttons
+  list.querySelectorAll(".expand-btn").forEach(btn => {
+    btn.onclick = () => {
+      const k = btn.dataset.k;
+      expandedSorten[k] = !expandedSorten[k];
+      renderSdKulturen();
+    };
+  });
+  // Delete buttons
+  list.querySelectorAll(".sd-action-btn.danger").forEach(btn => {
+    btn.onclick = () => {
+      const k = btn.dataset.k;
+      const isBuiltin = btn.dataset.builtin === "true";
+      const warn = isBuiltin ? `\n⚠️ Standard-Kultur – wird aus der App entfernt.` : "";
+      if (!confirm(`Kultur "${k}" löschen?${warn}`)) return;
+      if (isBuiltin) {
+        const d = loadDeletedKulturen(); d.push(k); saveDeletedKulturen(d);
+      } else {
+        saveCustomKulturen(loadCustomKulturen().filter(c => c !== k));
+      }
+      renderSdKulturen();
+      renderKulturChips();
+    };
+  });
+  // Sorte delete
+  list.querySelectorAll(".sorte-del").forEach(btn => {
+    btn.onclick = () => {
+      const s = loadSorten();
+      s[btn.dataset.k] = (s[btn.dataset.k] || []).filter(x => x !== btn.dataset.s);
+      saveSorten(s);
+      renderSdKulturen();
+    };
+  });
+  // Sorte add
+  list.querySelectorAll(".sorte-add-btn").forEach(btn => {
+    btn.onclick = () => {
+      const k     = btn.dataset.k;
+      const input = document.getElementById("sorte-input-" + k.replace(/\s/g,'_'));
+      const val   = input ? input.value.trim() : "";
+      if (!val) return;
+      const s = loadSorten();
+      if (!(s[k] || []).includes(val)) { s[k] = [...(s[k] || []), val]; saveSorten(s); }
+      renderSdKulturen();
+    };
+  });
+}
 
-          <label for="sowing-time">Saattermin</label>
-          <div class="sowing-time-select">
-            <select id="sowing-time">
-              <option value="early">früh</option>
-              <option value="mid" selected>mittel</option>
-              <option value="late">spät</option>
-            </select>
-            <p id="recommended-density" class="form-hint">Empfohlener Zielbestand: –</p>
-          </div>
+function showKulturForm() {
+  document.getElementById("kulturen-form-wrap").style.display = "block";
+  document.getElementById("sd-kult-name").focus();
+}
+function hideKulturForm() {
+  document.getElementById("kulturen-form-wrap").style.display = "none";
+  document.getElementById("sd-kult-name").value = "";
+}
+function saveSdKultur() {
+  const name = document.getElementById("sd-kult-name").value.trim();
+  if (!name) { toast("⚠️ Bitte Kulturname eingeben"); return; }
+  const allLower = [...Object.keys(CONFIG), ...loadCustomKulturen()].map(k => k.toLowerCase());
+  if (allLower.includes(name.toLowerCase())) { toast("⚠️ Kultur bereits vorhanden"); return; }
+  // If was deleted before, restore it
+  const deleted = loadDeletedKulturen();
+  if (deleted.includes(name)) {
+    saveDeletedKulturen(deleted.filter(d => d !== name));
+  } else {
+    const custom = loadCustomKulturen(); custom.push(name); saveCustomKulturen(custom);
+  }
+  hideKulturForm();
+  renderSdKulturen();
+  renderKulturChips();
+  toast("✓ Kultur gespeichert");
+}
 
-          <label for="target-density">Ziel-Bestandesdichte (Pflanzen/m²)</label>
-          <input id="target-density" type="number" min="0" step="1" required />
-
-          <label for="field-emergence">Feldaufgang</label>
-          <select id="field-emergence">
-            <option value="0.9">gut (90 %)</option>
-            <option value="0.8">mittel (80 %)</option>
-            <option value="0.7">schlecht (70 %)</option>
-          </select>
-
-          <label for="filled-amount">Eingefüllte Menge (kg)</label>
-          <input id="filled-amount" type="number" min="0" step="0.01" required />
-
-          <label for="current-area">Aktuelle Fläche (ha)</label>
-          <input id="current-area" type="number" min="0" step="0.01" value="0" />
-          <p class="form-hint">Wird nach jeder Berechnung automatisch aktualisiert.</p>
-
-          <button type="submit" class="primary">Berechnen</button>
-        </form>
-
-        <section id="result-section" class="result hidden" aria-live="polite">
-          <h3>Ergebnis</h3>
-          <dl>
-            <div>
-              <dt>Saatgutbedarf je m²</dt>
-              <dd id="result-seeds-per-m2">-</dd>
-            </div>
-            <div>
-              <dt>Saatgutbedarf je ha</dt>
-              <dd id="result-seeds-per-ha">-</dd>
-            </div>
-            <div>
-              <dt>kg pro ha</dt>
-              <dd id="result-kg-per-ha">-</dd>
-            </div>
-            <div>
-              <dt>Theoretische Fläche aus Menge</dt>
-              <dd id="result-theoretical-area">-</dd>
-            </div>
-            <div>
-              <dt>Aktualisierte Gesamtfläche</dt>
-              <dd id="result-updated-area">-</dd>
-            </div>
-          </dl>
-        </section>
-      </section>
-      <section id="psm-rechner-view" class="panel view hidden" aria-labelledby="psm-rechner-heading">
-        <button type="button" class="back-button" data-action="back">Zurück</button>
-        <h2 id="psm-rechner-heading">PSM-Rechner</h2>
-        <form id="psm-calculator-form" class="form-grid">
-          <div>
-            <label for="psm-coverage-area">Fläche je Tankfüllung (ha)</label>
-            <input
-              id="psm-coverage-area"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="z. B. 20"
-              required
-            />
-            <p class="form-hint">Tankvolumen der Spritze: 4.700&nbsp;l</p>
-          </div>
-
-          <fieldset class="psm-application-fieldset">
-            <legend>Pflanzenschutzmittel pro Tank</legend>
-            <p id="psm-calculator-empty-hint" class="form-hint hidden">
-              Noch keine Pflanzenschutzmittel angelegt. Bitte vor der Berechnung Mittel im Lager hinterlegen.
-            </p>
-            <div id="psm-calculator-rows" class="psm-calculator-rows" aria-live="polite"></div>
-            <button type="button" id="psm-calculator-add-row" class="secondary add-application-button">
-              Mittel hinzufügen
-            </button>
-          </fieldset>
-
-          <button type="submit" class="primary">Berechnen</button>
-        </form>
-
-        <template id="psm-calculator-row-template">
-          <div class="psm-calculator-row">
-            <select class="psm-calculator-product" required aria-label="Pflanzenschutzmittel auswählen"></select>
-            <select
-              class="psm-calculator-application"
-              required
-              aria-label="Anwendungsvariante"
-              disabled
-            ></select>
-            <div class="psm-amount-input psm-calculator-rate-group">
-              <input
-                type="number"
-                class="psm-calculator-rate"
-                min="0"
-                step="0.01"
-                placeholder="Aufwandmenge je ha"
-                required
-                aria-label="Aufwandmenge je ha"
-                disabled
-              />
-              <div class="psm-calculator-rate-actions">
-                <button type="button" class="link-button" data-action="use-max-rate">Max übernehmen</button>
-              </div>
-            </div>
-            <button
-              type="button"
-              class="icon-button"
-              data-action="remove-psm-calculator-row"
-              aria-label="Zeile entfernen"
-            >
-              &times;
-            </button>
-          </div>
-        </template>
-
-        <section id="psm-calculator-result" class="result hidden" aria-live="polite">
-          <h3>Ergebnis</h3>
-          <div class="table-wrapper">
-            <table class="psm-calculator-result-table">
-              <thead>
-                <tr>
-                  <th>Mittel</th>
-                  <th>Kultur / Anwendung</th>
-                  <th>Aufwandmenge je ha</th>
-                  <th>Gesamtmenge je Tank</th>
-                </tr>
-              </thead>
-              <tbody id="psm-calculator-result-body"></tbody>
-            </table>
-          </div>
-          <p id="psm-calculator-water" class="psm-calculator-water"></p>
-        </section>
-      </section>
-    </main>
-
-    <footer class="app-footer">
-      <small>Alle Daten werden lokal gespeichert.</small>
-    </footer>
-
-    <script src="app.js" defer></script>
-  </body>
+// ════════════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════════════
+initForm();
+goPage("monitor");
+if (typeof PSM !== "undefined") initPsmPage();
+</script>
+</body>
 </html>
-
